@@ -32,6 +32,16 @@
   "error_not_owner": "Esta carpeta la sincroniza otro equipo ({host}). ¿Quieres que este equipo tome el relevo?",
   "error_no_year": "La dirección del campus no indica el curso académico (por ejemplo, /2026-27).",
   "error_no_destination": "Elige primero una carpeta de destino.",
-  "error_network": "No se ha podido conectar con el campus: {error}",
-  "take_over_button": "Tomar el relevo"
+  "error_network": "No se ha podido conectar con el campus ({error}). Comprueba la conexión y vuelve a intentarlo.",
+  "take_over_button": "Tomar el relevo",
+  "login_site_label": "Dirección del campus",
+  "login_need_browser_first": "Pulsa primero «Abrir navegador»: cada inicio de sesión necesita una dirección nueva.",
+  "login_invalid_redirect": "La dirección pegada no es válida o es de otro intento. Pulsa «Abrir navegador» y vuelve a empezar.",
+  "login_working": "Comprobando…",
+  "logged_in_as": "Sesión iniciada en {site}.",
+  "error_locked_short": "Ya hay una sincronización en marcha en esta carpeta.",
+  "error_moodle": "El campus ha respondido con un error: {error}",
+  "error_unexpected": "Ha ocurrido un error inesperado. Los detalles están en el registro de la aplicación.",
+  "error_config_corrupt": "El archivo de configuración está dañado. Bórralo o renómbralo (está en %LOCALAPPDATA%\\campus-sync\\config.json) y vuelve a abrir la aplicación.",
+  "error_keyring": "No se ha podido acceder al almacén de credenciales de Windows."
 }
