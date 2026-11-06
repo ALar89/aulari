@@ -8,7 +8,7 @@ from tkinter import ttk
 
 from campus_sync.app import CourseChoice, SyncResult
 from campus_sync.config import Settings
-from campus_sync.sync import ChangedFile, Progress, SyncSummary
+from campus_sync.sync import Progress, SyncSummary
 from campus_sync.texts import text
 from campus_sync.ui import summary
 from campus_sync.ui.home_frame import HomeFrame
@@ -62,23 +62,6 @@ class SummaryTextTests(unittest.TestCase):
             SyncResult(SyncSummary(invalid_token=True, cancelled=True))
         ).splitlines()
         self.assertEqual(lines[:2], [text("error_invalid_token"), text("summary_cancelled")])
-
-    def test_changes_are_listed(self) -> None:
-        """New and updated files are listed by course and path, up to a limit."""
-        changes = [ChangedFile("2026-27/SO/02 - TEORIA/Tema 5.pdf", False)]
-        changes.append(ChangedFile("2026-27/EC/01 - General/Pràctica 2.pdf", True))
-        changes.extend(ChangedFile(f"2026-27/SO/x{index}.pdf", False) for index in range(20))
-        shown = summary.summary_text(
-            SyncResult(SyncSummary(new=21, new_versions=1, changes=changes))
-        )
-        self.assertIn("  • [SO] 02 - TEORIA/Tema 5.pdf", shown)
-        self.assertIn(
-            f"  • [EC] 01 - General/Pràctica 2.pdf {text('change_new_version_tag')}", shown
-        )
-        self.assertEqual(shown.count("•"), summary.MAX_CHANGES_SHOWN)
-        self.assertIn(
-            text("summary_more_changes", count=len(changes) - summary.MAX_CHANGES_SHOWN), shown
-        )
 
 
 class FakeApp:

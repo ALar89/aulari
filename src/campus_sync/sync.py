@@ -88,14 +88,6 @@ class Progress:
     filename: str
 
 
-@dataclass(frozen=True)
-class ChangedFile:
-    """A file that is new or has a new version after this sync."""
-
-    relative_path: str  # relative to the destination, with '/' separators
-    is_new_version: bool
-
-
 @dataclass
 class SyncSummary:
     """Result of a sync run (RF10)."""
@@ -108,7 +100,6 @@ class SyncSummary:
     restored: int = 0
     removed_in_moodle: int = 0
     errors: list[str] = field(default_factory=list)
-    changes: list[ChangedFile] = field(default_factory=list)
     cancelled: bool = False
     invalid_token: bool = False
 
@@ -237,12 +228,6 @@ class Syncer:
         """
         result = organizer.ensure_inside(self._destination, self._destination / relative_path)
         return result
-
-    def _note_change(self, target: Path, is_new_version: bool) -> None:
-        """Remember a new or updated file for the summary and the log."""
-        change = ChangedFile(self._relative(target), is_new_version)
-        self._summary.changes.append(change)
-        logger.info("%s: %s", "New version" if is_new_version else "New", change.relative_path)
 
     def _record(self, course_id: int, item: SyncItem, target: Path, sha256: str) -> bool:
         """Store a download in the registry; return True if it created a version."""
@@ -415,7 +400,6 @@ class Syncer:
                 )
             self._record(course_id, item, target, sha256)
             self._summary.new = self._summary.new + 1
-            self._note_change(target, is_new_version=False)
 
     def _handle_changed(self, course_id: int, relative_dir: PurePosixPath, item: SyncItem) -> None:
         """Write a new version next to the previous one, never overwriting (RF7).
@@ -448,7 +432,6 @@ class Syncer:
         created = self._record(course_id, item, target, sha256)
         if moved and created:
             self._summary.new_versions = self._summary.new_versions + 1
-            self._note_change(target, is_new_version=True)
         else:
             self._summary.unchanged = self._summary.unchanged + 1
 

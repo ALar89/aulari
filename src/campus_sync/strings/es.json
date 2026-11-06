@@ -63,8 +63,5 @@
   "alias_done": "Carpeta renombrada a «{alias}».",
   "error_alias_invalid": "Ese nombre de carpeta no es válido.",
   "error_alias_not_synced": "Sincroniza la asignatura una vez antes de cambiar su carpeta.",
-  "error_alias_taken": "Ya hay otra carpeta con ese nombre en este curso académico.",
-  "summary_changes_title": "Novedades:",
-  "change_new_version_tag": "(nueva versión)",
-  "summary_more_changes": "  … y {count} más (la lista completa está en el registro)."
+  "error_alias_taken": "Ya hay otra carpeta con ese nombre en este curso académico."
 }
