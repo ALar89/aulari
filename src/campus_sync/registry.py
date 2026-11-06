@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 STATE_PRESENT = "present"
 STATE_MISSING = "missing"
 STATE_REMOVED = "removed_in_moodle"
@@ -71,6 +71,19 @@ CREATE TABLE file_versions (
     PRIMARY KEY (file_id, version)
 );
 """
+
+# Changes applied in order to reach SCHEMA_VERSION: {target version: SQL}.
+_MIGRATIONS = {
+    2: """
+CREATE TABLE calendar_events (
+    site_id      INTEGER NOT NULL REFERENCES sites (id),
+    event_id     INTEGER NOT NULL,
+    timemodified INTEGER NOT NULL,
+    sequence     INTEGER NOT NULL,
+    PRIMARY KEY (site_id, event_id)
+);
+""",
+}
 
 _LATEST_VERSION = """
 SELECT v.* FROM file_versions AS v
@@ -144,12 +157,19 @@ class Registry:
         Raises: RegistryError if the database comes from a newer version.
         """
         version = self._conn.execute("PRAGMA user_version").fetchone()[0]
+        if version > SCHEMA_VERSION:
+            raise RegistryError(f"Registry schema {version} is newer than {SCHEMA_VERSION}")
         if version == 0:
+            # New database: create the version 1 tables, then migrate.
             with self._conn:
                 self._conn.executescript(_SCHEMA)
-                self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version > SCHEMA_VERSION:
-            raise RegistryError(f"Registry schema {version} is newer than {SCHEMA_VERSION}")
+                self._conn.execute("PRAGMA user_version = 1")
+            version = 1
+        while version < SCHEMA_VERSION:
+            version = version + 1
+            with self._conn:
+                self._conn.executescript(_MIGRATIONS[version])
+                self._conn.execute(f"PRAGMA user_version = {version}")
 
     # --- sites, courses and sections -------------------------------------
 
@@ -404,4 +424,30 @@ class Registry:
             (site_id, course_id),
         ).fetchall()
         result = [dict(row) for row in rows]
+        return result
+
+    # --- calendar ------------------------------------------------------
+
+    def event_sequence(self, site_id: int, event_id: int, timemodified: int) -> int:
+        """Return the iCalendar SEQUENCE of an event, raising it when the event changed.
+
+        A new event starts at 0; each new timemodified adds 1, so calendars
+        update the event instead of duplicating it (design.md section 8).
+        """
+        row = self._conn.execute(
+            "SELECT timemodified, sequence FROM calendar_events WHERE site_id = ? AND event_id = ?",
+            (site_id, event_id),
+        ).fetchone()
+        result = 0
+        if row is not None:
+            result = row["sequence"]
+            if row["timemodified"] != timemodified:
+                result = result + 1
+        with self._conn:
+            self._conn.execute(
+                "INSERT INTO calendar_events (site_id, event_id, timemodified, sequence) "
+                "VALUES (?, ?, ?, ?) ON CONFLICT (site_id, event_id) "
+                "DO UPDATE SET timemodified = excluded.timemodified, sequence = excluded.sequence",
+                (site_id, event_id, timemodified, result),
+            )
         return result
