@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Build
+build/
+dist/
+
+# Personal / local data: never commit
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.ics
+*.log
+*.token
+.env
+recordings/
+poc/out/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

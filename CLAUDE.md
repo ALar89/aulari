@@ -1,0 +1,133 @@
+# CLAUDE.md — Campus Sync for Moodle (nombre provisional)
+
+App de escritorio en Python que descarga el material de un Moodle (por defecto, el Campus Virtual de la UAB, "e-aules"), lo ordena en carpetas y exporta el calendario.
+
+**Antes de implementar cualquier funcionalidad, leer la sección correspondiente de `docs/design.md`** (requisitos, modelo de datos, ADR, riesgos). Este archivo solo contiene las reglas de trabajo.
+
+## 1. Estado
+
+- Diseño cerrado **salvo lo que decida la prueba de concepto** (Fase 1).
+- Siguiente paso: **Fase 1** (sección 7).
+- Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
+- No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
+
+## 2. Reglas de trabajo con el usuario
+
+- Responder **en el idioma del usuario** (catalán o castellano), de forma concisa.
+- **Verificar antes de cambiar.** Al depurar: reproducir, aislar y confirmar la causa antes de proponer un arreglo.
+- No dar por hecho que el usuario ha hecho un paso que no ha confirmado.
+- Si hay una alternativa mejor, decirlo brevemente y argumentado.
+- Cambio grande (más de un archivo o más de ~50 líneas): explicar el plan y esperar confirmación.
+- Si algo no funciona como dice el diseño: **parar, informar con lo verificado y esperar**. No probar alternativas por cuenta propia.
+- No hacer commit ni push sin que el usuario lo pida.
+
+## 3. Estilo de código (obligatorio)
+
+Programación estructurada clásica, código didáctico:
+
+- **Un único `return`, como última sentencia.** Las funciones sin valor (incluidos los callbacks de Tkinter) no llevan `return`.
+- **Prohibidos `break`, `continue` y `for...else`.** `for` solo para recorrer todos los elementos; si puede haber salida anticipada, `while` con índice y variable booleana de control en la condición.
+- **Excepciones:** `raise` está permitido para errores reales y no cuenta como salida extra. Cada función documenta en su docstring qué lanza (`Raises:`). Nunca `return` dentro de `try`, `except` o `finally`: asignar `result` y devolverlo después. Capturar excepciones concretas, nunca `except:` genérico. Nunca usarlas como control de flujo normal.
+- **`with` obligatorio** para archivos, SQLite y respuestas HTTP.
+- **Comprensiones:** solo con un `for` y como máximo un `if` simple. Prohibidas las anidadas o con `if/else`. Prohibidos `yield` y lambdas encadenadas salvo aprobación del usuario.
+- **Recursión** permitida (árbol de carpetas), con caso base explícito.
+- Variables inicializadas al principio de la función, con nombres descriptivos. Anotaciones de tipo en las firmas.
+- Funciones pequeñas: una tarea, con docstring.
+- Código, comentarios, docstrings y README **en inglés**. Rutas con `pathlib`.
+- Tkinter: la red va en un `threading.Thread`; la interfaz solo se toca desde el hilo principal con `root.after()`. El núcleo nunca importa `tkinter`.
+
+```python
+def find_course_by_id(courses: list[dict], course_id: int) -> dict | None:
+    """Return the course with the given id, or None if it is not found."""
+    result = None
+    found = False
+    index = 0
+    while index < len(courses) and not found:
+        if courses[index]["id"] == course_id:
+            result = courses[index]
+            found = True
+        index = index + 1
+    return result
+
+
+def read_config(path: Path) -> dict:
+    """Return the parsed config, or an empty dict if the file is missing.
+
+    Raises: json.JSONDecodeError if the file is corrupt.
+    """
+    result = {}
+    try:
+        with path.open(encoding="utf-8") as config_file:
+            result = json.load(config_file)
+    except FileNotFoundError:
+        logger.info("Config file not found, using defaults")
+    return result
+```
+
+## 4. Seguridad (obligatorio)
+
+- **El usuario nunca pega en el chat su token, la URL del QR ni la URL de inicio de sesión. Claude nunca los pide.** Los scripts los leen en local con `getpass.getpass()`.
+- El token se guarda **solo con `keyring`**, también en la PoC (servicio `campus-sync`, usuario `<host>|<userid>`). Nunca en texto plano, configuración, logs, tracebacks ni `print`. Para comprobarlo, mostrar solo `len(token)`.
+- **Filtro de logging obligatorio** que censura `token=`, `wstoken=`, `privatetoken`, `userprivateaccesskey` y las rutas `/tokenpluginfile.php/<clave>/`. Los mensajes de excepción pasan por él. `urllib3` en nivel WARNING. Una prueba unitaria lo verifica.
+- Las llamadas a la API envían `wstoken` en el cuerpo POST.
+- **Nunca falsear el User-Agent** ni saltarse restricciones del servidor. User-Agent honesto: `CampusSync/<versión> (+<URL de GitHub>)`.
+- El cliente solo llama a una **lista blanca de funciones de lectura** escrita en el código.
+- **Claude no ejecuta nada contra un campus real.** Escribe el script y lo ejecuta el usuario, salvo que este lo pida explícitamente en ese mensaje.
+- Las respuestas reales grabadas van **fuera del repositorio**, en `%LOCALAPPDATA%\campus-sync\recordings\`. Claude no lee ese directorio sin permiso. En `tests/fixtures/` solo van versiones anonimizadas.
+- Todo nombre que venga de Moodle pasa por `sanitize_filename()` y toda ruta final se comprueba con `resolve()` para que quede dentro del destino (reglas en `docs/design.md` §5).
+- La app **nunca abre ni ejecuta** lo que descarga.
+- Trato al servidor: descargas secuenciales, timeouts y espera creciente ante 429/503.
+
+## 5. Entorno y comandos (Windows, PowerShell)
+
+- Python 3.12. Entorno: `py -3.12 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
+- Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `ruff`. **Cualquier otra se pide antes de instalarla.**
+- Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
+- Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
+- Comandos de PowerShell: rutas con `\`, `Remove-Item` en lugar de `rm -rf`.
+- Git: `main` estable y una rama por fase (`fase-1-poc`). Commits pequeños, en inglés e imperativo. `git status` antes de cada commit.
+
+## 6. Repositorio
+
+
+```
+aulari/
+├── CLAUDE.md
+├── .gitattributes
+├── README.md
+├── LICENSE
+├── THIRD_PARTY_LICENSES
+├── pyproject.toml
+├── requirements.txt / requirements-dev.txt
+├── .gitignore
+├── docs/design.md
+├── poc/                    # proof of concept code only, no outputs
+├── src/campus_sync/
+│   ├── auth.py             # login flow, token in keyring
+│   ├── moodle_client.py    # whitelisted Moodle web service calls
+│   ├── sync.py             # orchestrates a sync run
+│   ├── organizer.py        # folders, sanitized names, versions
+│   ├── registry.py         # SQLite: what was downloaded
+│   ├── calendar_export.py  # calendar
+│   ├── config.py           # user settings (JSON, no secrets)
+│   ├── log_filter.py       # secret redaction
+│   ├── strings/es.json     # UI texts
+│   └── ui/                 # Tkinter
+└── tests/
+    ├── fixtures/           # anonymized API responses only
+    └── test_*.py
+```
+
+El `.gitignore` ya existe: ampliarlo **antes** de crear cualquier archivo nuevo que no deba subirse. El `.spec` de PyInstaller sí se sube.
+
+
+## 7. Fase 1: prueba de concepto de autenticación
+
+Objetivo: saber cómo se obtiene un token legítimamente en e-aules. Script de consola en `poc/`.
+
+1. Llamar a `tool_mobile_get_public_config` (no requiere sesión) y anotar `typeoflogin`, `qrcodetype`, `launchurl`, versión del sitio y si es HTTPS.
+2. Según el resultado, plantear al usuario el método (decisión D1 en `docs/design.md`). **No falsear el User-Agent para el QR.**
+3. Con el token obtenido: `core_webservice_get_site_info`, `core_enrol_get_users_courses` y `core_course_get_contents` de un curso. Comprobar si la URL de e-aules cambia por curso académico.
+4. Comprobar si el sitio permite la exportación nativa del calendario (`core_calendar_get_calendar_export_token`), para la decisión D3.
+5. Grabar las respuestas en `%LOCALAPPDATA%\campus-sync\recordings\`.
+6. Escribir en `docs/design.md` §10 lo verificado y lo descartado.
