@@ -113,7 +113,21 @@ Código fuente de Moodle, rama `MOODLE_405_STABLE`:
 - Calendario: `calendar/externallib.php`, `calendar/classes/external/export/token.php`.
 - `fileurl` con `revision`: `mod/resource/lib.php`, `mod/folder/lib.php`.
 
-Pendiente de completar en la Fase 1: configuración real de e-aules.
+### Fase 1: e-aules (verificado el 2026-11-06)
+
+`tool_mobile_get_public_config` (`poc/public_config.py`, sin sesión, vía `lib/ajax/service-nologin.php`):
+- `wwwroot` = `https://e-aules.uab.cat/2026-27`, HTTPS. **El curso académico forma parte de la URL**: cada curso es un sitio distinto (riesgo de §12 confirmado en la práctica; falta comprobar si el sitio del curso anterior sigue accesible).
+- `typeoflogin` = 2 (navegador del sistema), `launchurl` = `.../admin/tool/mobile/launch.php`, proveedor de identidad: CAS.
+- `release`, `version` y `qrcodetype` no aparecen en la configuración pública.
+
+Flujo de navegador (`poc/browser_login.py`):
+- **Funciona** con `service=moodle_mobile_app` y `urlscheme=moodlemobile`, sin tocar el User-Agent. El usuario copia la cabecera `Location` (`moodlemobile://token=...`) desde las DevTools y el script la lee con `getpass`.
+- La firma `md5(wwwroot + passport)` se verifica correctamente. Token de 32 caracteres.
+- `keyring` en Windows usa `WinVaultKeyring` (Administrador de credenciales).
+- `core_webservice_get_site_info`: Moodle **4.5.10+** (Build 20260320), versión `2024100710.05`; coincide con la rama analizada.
+- Usuario del keyring: `<host><ruta>|<userid>` (p. ej. `e-aules.uab.cat/2026-27|<id>`) en lugar de `<host>|<userid>`, porque cada curso académico es un sitio distinto.
+
+Pendiente: cursos, contenidos, exportación de calendario (pasos 3 y 4 de la Fase 1).
 
 ## 11. Legal y distribución
 
