@@ -148,6 +148,7 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 
 - `webservice/pluginfile.php` **acepta el token en el cuerpo POST** (`token=`), sin ponerlo en la URL: `poc/download_one.py` descargó un archivo de 640 bytes con el mismo tamaño que declara Moodle.
 - Los módulos `page` listan un `index.html` generado con `filesize = 0`: no son comparables por tamaño y quedan fuera de la v1 (§14). La sincronización debe ignorarlos.
+- **Sincronización real de una asignatura** (`poc/sync_one_course.py`, núcleo completo): primera ejecución, 33 archivos nuevos y 0 errores; segunda ejecución, 33 sin cambios y 0 descargas. **Pendiente de cuadrar:** la estimación previa era unos 35 (27 archivos de contenidos, uno de ellos el `index.html` de un `page`, más 8 adjuntos de tareas); falta comprobar cuál es el otro que no aparece.
 
 ## 11. Legal y distribución
 
