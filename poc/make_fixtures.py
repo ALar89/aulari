@@ -7,8 +7,10 @@ tests/fixtures/course_contents.json and tests/fixtures/assignments.json.
 Anonymization keeps only the fields the code uses (whitelist) and replaces:
 - every name (sections, modules, files, folders, assignments) by a generic one;
 - every URL host by moodle.example.test, and file names inside URLs;
-- external links by https://external.example.org/linkN.
-Numbers (ids, sizes, timestamps) and the structure are kept. Descriptions,
+- external links by https://external.example.org/linkN;
+- every id (course, section, module, assignment, context) by an invented
+  one, consistently in both files.
+Sizes, timestamps and the structure are kept. Descriptions,
 authors and any other field are dropped. Review the output by hand before
 committing it.
 
@@ -29,6 +31,8 @@ PLUGINFILE_MARKER = "pluginfile.php"
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
 CONTENT_FIELDS = ["type", "filesize", "timemodified", "mimetype"]
 PAGE_HTML_NAME = "index.html"
+# First invented number for each kind of id (ranges do not overlap).
+ID_BASES = {"course": 100, "section": 1000, "module": 5000, "assign": 7000, "context": 9000}
 
 
 class Anonymizer:
@@ -39,6 +43,15 @@ class Anonymizer:
         self._files = {}
         self._dirs = {}
         self._links = {}
+        self._ids = {kind: {} for kind in ID_BASES}
+
+    def number(self, kind: str, original: int) -> int:
+        """Return the invented id for an original id of a given kind."""
+        table = self._ids[kind]
+        if original not in table:
+            table[original] = ID_BASES[kind] + len(table) + 1
+        result = table[original]
+        return result
 
     def file_name(self, name: str) -> str:
         """Return 'file_NN.ext' for a file name, keeping the extension.
@@ -84,7 +97,9 @@ class Anonymizer:
         # Keep everything before filepath + filename (contextid, component,
         # filearea and the optional itemid/revision), whatever its length.
         name_segments = len([part for part in filepath.split("/") if part]) + 1
-        prefix = "/".join(segments[start : len(segments) - name_segments])
+        prefix_parts = segments[start : len(segments) - name_segments]
+        prefix_parts[0] = str(self.number("context", int(prefix_parts[0])))
+        prefix = "/".join(prefix_parts)
         path = self.file_path(filepath) + self.file_name(filename)
         result = f"{FAKE_SITE}/webservice/pluginfile.php/{prefix}{path}?forcedownload=1"
         return result
@@ -109,7 +124,7 @@ def anonymize_content(content: dict, anon: Anonymizer) -> dict:
 def anonymize_module(module: dict, index: int, anon: Anonymizer) -> dict:
     """Return a whitelisted, anonymized copy of one course module."""
     result = {
-        "id": module["id"],
+        "id": anon.number("module", int(module["id"])),
         "modname": module.get("modname"),
         "name": f"{module.get('modname')} {index}",
         "uservisible": module.get("uservisible", True),
@@ -130,7 +145,7 @@ def anonymize_sections(sections: list, anon: Anonymizer) -> list:
             modules.append(anonymize_module(module, counter, anon))
         result.append(
             {
-                "id": section["id"],
+                "id": anon.number("section", int(section["id"])),
                 "section": section.get("section", 0),
                 "name": f"Section {section.get('section', 0)}",
                 "uservisible": section.get("uservisible", True),
@@ -153,18 +168,21 @@ def anonymize_assignments(data: dict, anon: Anonymizer) -> dict:
                 attachments.append(anonymized)
             assignments.append(
                 {
-                    "id": assignment.get("id"),
-                    "cmid": assignment.get("cmid"),
+                    "id": anon.number("assign", int(assignment.get("id", 0))),
+                    "cmid": anon.number("module", int(assignment.get("cmid", 0))),
                     "name": f"assign {index}",
                     "introattachments": attachments,
                     "introfiles": [{} for _ in assignment.get("introfiles", [])],
                 }
             )
-        courses.append({"id": course.get("id"), "assignments": assignments})
-    warnings = [
-        {key: warning.get(key) for key in ["item", "itemid", "warningcode", "message"]}
-        for warning in data.get("warnings", [])
-    ]
+        course_id = anon.number("course", int(course.get("id", 0)))
+        courses.append({"id": course_id, "assignments": assignments})
+    warnings = []
+    for warning in data.get("warnings", []):
+        anonymized = {key: warning.get(key) for key in ["item", "warningcode", "message"]}
+        # Warning itemids are module ids (cmid) of assignments without access.
+        anonymized["itemid"] = anon.number("module", int(warning.get("itemid", 0)))
+        warnings.append(anonymized)
     result = {"courses": courses, "warnings": warnings}
     return result
 

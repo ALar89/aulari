@@ -1,11 +1,11 @@
 {
   "courses": [
     {
-      "id": 1072,
+      "id": 101,
       "assignments": [
         {
-          "id": 6118,
-          "cmid": 55132,
+          "id": 7001,
+          "cmid": 5025,
           "name": "assign 1",
           "introattachments": [
             {
@@ -14,14 +14,14 @@
               "mimetype": "application/pdf",
               "filename": "file_28.pdf",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206227/mod_assign/introattachment/0/file_28.pdf?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9022/mod_assign/introattachment/0/file_28.pdf?forcedownload=1"
             }
           ],
           "introfiles": []
         },
         {
-          "id": 6119,
-          "cmid": 55135,
+          "id": 7002,
+          "cmid": 5028,
           "name": "assign 2",
           "introattachments": [
             {
@@ -30,14 +30,14 @@
               "mimetype": "application/pdf",
               "filename": "file_29.pdf",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206230/mod_assign/introattachment/0/file_29.pdf?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9023/mod_assign/introattachment/0/file_29.pdf?forcedownload=1"
             }
           ],
           "introfiles": []
         },
         {
-          "id": 6126,
-          "cmid": 55161,
+          "id": 7003,
+          "cmid": 5046,
           "name": "assign 3",
           "introattachments": [
             {
@@ -46,7 +46,7 @@
               "mimetype": "application/pdf",
               "filename": "file_30.pdf",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206256/mod_assign/introattachment/0/file_30.pdf?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_30.pdf?forcedownload=1"
             },
             {
               "filesize": 561,
@@ -54,7 +54,7 @@
               "mimetype": "text/plain",
               "filename": "file_31.txt",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206256/mod_assign/introattachment/0/file_31.txt?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_31.txt?forcedownload=1"
             },
             {
               "filesize": 400,
@@ -62,7 +62,7 @@
               "mimetype": "application/x-sh",
               "filename": "file_32.sh",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206256/mod_assign/introattachment/0/file_32.sh?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_32.sh?forcedownload=1"
             },
             {
               "filesize": 211,
@@ -70,14 +70,14 @@
               "mimetype": "application/x-sh",
               "filename": "file_33.sh",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206256/mod_assign/introattachment/0/file_33.sh?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_33.sh?forcedownload=1"
             }
           ],
           "introfiles": []
         },
         {
-          "id": 6127,
-          "cmid": 55162,
+          "id": 7004,
+          "cmid": 5047,
           "name": "assign 4",
           "introattachments": [
             {
@@ -86,7 +86,7 @@
               "mimetype": "application/zip",
               "filename": "file_34.zip",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206257/mod_assign/introattachment/0/file_34.zip?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9025/mod_assign/introattachment/0/file_34.zip?forcedownload=1"
             },
             {
               "filesize": 4117932,
@@ -94,14 +94,14 @@
               "mimetype": "application/pdf",
               "filename": "file_35.pdf",
               "filepath": "/",
-              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206257/mod_assign/introattachment/0/file_35.pdf?forcedownload=1"
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9025/mod_assign/introattachment/0/file_35.pdf?forcedownload=1"
             }
           ],
           "introfiles": []
         },
         {
-          "id": 21405,
-          "cmid": 222391,
+          "id": 7005,
+          "cmid": 5026,
           "name": "assign 5",
           "introattachments": [],
           "introfiles": []
@@ -112,27 +112,27 @@
   "warnings": [
     {
       "item": "module",
-      "itemid": 55138,
       "warningcode": "1",
-      "message": "No access rights in module context"
+      "message": "No access rights in module context",
+      "itemid": 5030
     },
     {
       "item": "module",
-      "itemid": 55141,
       "warningcode": "1",
-      "message": "No access rights in module context"
+      "message": "No access rights in module context",
+      "itemid": 5032
     },
     {
       "item": "module",
-      "itemid": 55163,
       "warningcode": "1",
-      "message": "No access rights in module context"
+      "message": "No access rights in module context",
+      "itemid": 5048
     },
     {
       "item": "module",
-      "itemid": 55164,
       "warningcode": "1",
-      "message": "No access rights in module context"
+      "message": "No access rights in module context",
+      "itemid": 5049
     }
   ]
 }
