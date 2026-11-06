@@ -1,0 +1,629 @@
+[
+  {
+    "id": 14931,
+    "section": 0,
+    "name": "Section 0",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 55100,
+        "modname": "forum",
+        "name": "forum 1",
+        "uservisible": true
+      }
+    ]
+  },
+  {
+    "id": 14932,
+    "section": 1,
+    "name": "Section 1",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 55105,
+        "modname": "forum",
+        "name": "forum 2",
+        "uservisible": true
+      },
+      {
+        "id": 55106,
+        "modname": "resource",
+        "name": "resource 3",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 121238,
+            "timemodified": 1787126410,
+            "mimetype": "application/pdf",
+            "filename": "file_01.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206201/mod_resource/content/29/file_01.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55107,
+        "modname": "folder",
+        "name": "folder 4",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 251391,
+            "timemodified": 1790064386,
+            "mimetype": "application/pdf",
+            "filename": "file_02.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206202/mod_folder/content/40/file_02.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55118,
+        "modname": "resource",
+        "name": "resource 5",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1134006,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_03.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206213/mod_resource/content/5/file_03.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55108,
+        "modname": "resource",
+        "name": "resource 6",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 11673513,
+            "timemodified": 1785403214,
+            "mimetype": "application/pdf",
+            "filename": "file_04.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206203/mod_resource/content/12/file_04.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55109,
+        "modname": "resource",
+        "name": "resource 7",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 2120211,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_05.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206204/mod_resource/content/2/file_05.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55110,
+        "modname": "label",
+        "name": "label 8",
+        "uservisible": true
+      }
+    ]
+  },
+  {
+    "id": 14933,
+    "section": 2,
+    "name": "Section 2",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 115659,
+        "modname": "label",
+        "name": "label 9",
+        "uservisible": true
+      },
+      {
+        "id": 55111,
+        "modname": "page",
+        "name": "page 10",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 919030,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_06.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206206/mod_page/content/14/file_06.pdf?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 0,
+            "timemodified": 1787127340,
+            "filename": "index.html",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206206/mod_page/content/index.html?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55112,
+        "modname": "folder",
+        "name": "folder 11",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 3766281,
+            "timemodified": 1788958797,
+            "mimetype": "application/pdf",
+            "filename": "file_08.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206207/mod_folder/content/25/file_08.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55113,
+        "modname": "folder",
+        "name": "folder 12",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 2304663,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_09.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206208/mod_folder/content/21/file_09.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55114,
+        "modname": "folder",
+        "name": "folder 13",
+        "uservisible": true,
+        "contents": []
+      },
+      {
+        "id": 55115,
+        "modname": "resource",
+        "name": "resource 14",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1755237,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_10.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206210/mod_resource/content/10/file_10.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55116,
+        "modname": "resource",
+        "name": "resource 15",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1420608,
+            "timemodified": 1790605909,
+            "mimetype": "application/pdf",
+            "filename": "file_11.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206211/mod_resource/content/11/file_11.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55117,
+        "modname": "folder",
+        "name": "folder 16",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1033,
+            "timemodified": 1785403215,
+            "mimetype": "application/x-rar-compressed",
+            "filename": "file_12.rar",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206212/mod_folder/content/4/file_12.rar?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 640,
+            "timemodified": 1785403215,
+            "mimetype": "application/x-rar-compressed",
+            "filename": "file_13.rar",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206212/mod_folder/content/4/file_13.rar?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 2471608,
+            "timemodified": 1790606218,
+            "mimetype": "application/pdf",
+            "filename": "file_14.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206212/mod_folder/content/4/file_14.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55119,
+        "modname": "resource",
+        "name": "resource 17",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1550358,
+            "timemodified": 1785403215,
+            "mimetype": "application/pdf",
+            "filename": "file_15.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206214/mod_resource/content/11/file_15.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55120,
+        "modname": "resource",
+        "name": "resource 18",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1540210,
+            "timemodified": 1792533519,
+            "mimetype": "application/pdf",
+            "filename": "file_16.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206215/mod_resource/content/7/file_16.pdf?forcedownload=1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 14934,
+    "section": 3,
+    "name": "Section 3",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 55128,
+        "modname": "label",
+        "name": "label 19",
+        "uservisible": true
+      },
+      {
+        "id": 55129,
+        "modname": "label",
+        "name": "label 20",
+        "uservisible": true
+      },
+      {
+        "id": 69929,
+        "modname": "groupselect",
+        "name": "groupselect 21",
+        "uservisible": false
+      },
+      {
+        "id": 69932,
+        "modname": "groupselect",
+        "name": "groupselect 22",
+        "uservisible": false
+      },
+      {
+        "id": 69933,
+        "modname": "groupselect",
+        "name": "groupselect 23",
+        "uservisible": true
+      },
+      {
+        "id": 55131,
+        "modname": "folder",
+        "name": "folder 24",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 606707,
+            "timemodified": 1787151437,
+            "mimetype": "application/pdf",
+            "filename": "file_17.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206226/mod_folder/content/18/file_17.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55132,
+        "modname": "assign",
+        "name": "assign 25",
+        "uservisible": true
+      },
+      {
+        "id": 222391,
+        "modname": "assign",
+        "name": "assign 26",
+        "uservisible": true
+      },
+      {
+        "id": 55134,
+        "modname": "folder",
+        "name": "folder 27",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 429056,
+            "timemodified": 1787151959,
+            "mimetype": "application/pdf",
+            "filename": "file_18.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206229/mod_folder/content/8/file_18.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55135,
+        "modname": "assign",
+        "name": "assign 28",
+        "uservisible": true
+      },
+      {
+        "id": 55137,
+        "modname": "folder",
+        "name": "folder 29",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 298920,
+            "timemodified": 1787153390,
+            "mimetype": "application/pdf",
+            "filename": "file_19.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206232/mod_folder/content/18/file_19.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55138,
+        "modname": "assign",
+        "name": "assign 30",
+        "uservisible": false
+      },
+      {
+        "id": 55140,
+        "modname": "folder",
+        "name": "folder 31",
+        "uservisible": false
+      },
+      {
+        "id": 55141,
+        "modname": "assign",
+        "name": "assign 32",
+        "uservisible": false
+      },
+      {
+        "id": 55143,
+        "modname": "folder",
+        "name": "folder 33",
+        "uservisible": false
+      }
+    ]
+  },
+  {
+    "id": 14935,
+    "section": 4,
+    "name": "Section 4",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 69934,
+        "modname": "groupselect",
+        "name": "groupselect 34",
+        "uservisible": false
+      },
+      {
+        "id": 69941,
+        "modname": "groupselect",
+        "name": "groupselect 35",
+        "uservisible": false
+      },
+      {
+        "id": 69944,
+        "modname": "groupselect",
+        "name": "groupselect 36",
+        "uservisible": true
+      },
+      {
+        "id": 191659,
+        "modname": "groupselect",
+        "name": "groupselect 37",
+        "uservisible": true
+      },
+      {
+        "id": 203600,
+        "modname": "resource",
+        "name": "resource 38",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 4985553,
+            "timemodified": 1790185176,
+            "mimetype": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "filename": "file_20.pptx",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/483317/mod_resource/content/0/file_20.pptx?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55150,
+        "modname": "folder",
+        "name": "folder 39",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 1521815,
+            "timemodified": 1785403218,
+            "mimetype": "application/pdf",
+            "filename": "file_21.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206245/mod_folder/content/2/file_21.pdf?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 1548500,
+            "timemodified": 1785403218,
+            "mimetype": "application/pdf",
+            "filename": "file_22.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206245/mod_folder/content/2/file_22.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55151,
+        "modname": "folder",
+        "name": "folder 40",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 8076,
+            "timemodified": 1785403219,
+            "mimetype": "application/zip",
+            "filename": "file_23.zip",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206246/mod_folder/content/12/file_23.zip?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 389046,
+            "timemodified": 1788341778,
+            "mimetype": "application/pdf",
+            "filename": "file_24.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206246/mod_folder/content/12/file_24.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55153,
+        "modname": "folder",
+        "name": "folder 41",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 17257,
+            "timemodified": 1785403219,
+            "mimetype": "application/zip",
+            "filename": "file_25.zip",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206248/mod_folder/content/11/file_25.zip?forcedownload=1"
+          },
+          {
+            "type": "file",
+            "filesize": 319695,
+            "timemodified": 1788341801,
+            "mimetype": "application/pdf",
+            "filename": "file_26.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206248/mod_folder/content/11/file_26.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55155,
+        "modname": "folder",
+        "name": "folder 42",
+        "uservisible": false
+      },
+      {
+        "id": 55157,
+        "modname": "folder",
+        "name": "folder 43",
+        "uservisible": false
+      }
+    ]
+  },
+  {
+    "id": 14936,
+    "section": 5,
+    "name": "Section 5",
+    "uservisible": true,
+    "modules": [
+      {
+        "id": 55159,
+        "modname": "resource",
+        "name": "resource 44",
+        "uservisible": true,
+        "contents": [
+          {
+            "type": "file",
+            "filesize": 4119779,
+            "timemodified": 1785403219,
+            "mimetype": "application/pdf",
+            "filename": "file_27.pdf",
+            "filepath": "/",
+            "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/206254/mod_resource/content/2/file_27.pdf?forcedownload=1"
+          }
+        ]
+      },
+      {
+        "id": 55160,
+        "modname": "label",
+        "name": "label 45",
+        "uservisible": true
+      },
+      {
+        "id": 55161,
+        "modname": "assign",
+        "name": "assign 46",
+        "uservisible": true
+      },
+      {
+        "id": 55162,
+        "modname": "assign",
+        "name": "assign 47",
+        "uservisible": true
+      },
+      {
+        "id": 55163,
+        "modname": "assign",
+        "name": "assign 48",
+        "uservisible": false
+      },
+      {
+        "id": 55164,
+        "modname": "assign",
+        "name": "assign 49",
+        "uservisible": false
+      }
+    ]
+  }
+]
