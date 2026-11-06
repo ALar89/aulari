@@ -34,19 +34,24 @@ MAGIC_NUMBERS = {
     b"{": "JSON (probably an error)",
 }
 
+# Only real uploaded files: 'page' modules list a generated index.html with
+# filesize 0, which is not comparable (and pages are out of scope for v1).
+DOWNLOADABLE_MODULES = {"resource", "folder"}
+
 logger = logging.getLogger("download_one")
 
 
 def smallest_file(sections: list) -> dict | None:
-    """Return the smallest 'file' content in a course, or None if there is none."""
+    """Return the smallest non-empty file of a resource/folder module, or None."""
     result = None
     for section in sections:
         for module in section.get("modules", []):
-            for content in module.get("contents", []):
-                is_file = content.get("type") == "file"
-                size = content.get("filesize", 0)
-                if is_file and (result is None or size < result.get("filesize", 0)):
-                    result = content
+            if module.get("modname") in DOWNLOADABLE_MODULES:
+                for content in module.get("contents", []):
+                    size = content.get("filesize", 0)
+                    is_file = content.get("type") == "file" and size > 0
+                    if is_file and (result is None or size < result.get("filesize", 0)):
+                        result = content
     return result
 
 
