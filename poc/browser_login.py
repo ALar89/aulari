@@ -22,34 +22,25 @@ import logging
 import secrets
 import sys
 from pathlib import Path
-from urllib.parse import unquote, urlencode, urlparse
+from urllib.parse import unquote, urlencode
 
 import keyring
 import keyring.errors
 import requests
+from moodle_ws import KEYRING_SERVICE, MoodleError, call_function, keyring_username
 
 # Temporary until the package is installable: make src/ importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from campus_sync.log_filter import configure_logging  # noqa: E402
 
-USER_AGENT = "CampusSync/0.1.0-poc (+https://github.com/TODO/campus-sync)"
 EXPECTED_ARGS = 2  # script name + site URL
-TIMEOUT_SECONDS = 30
 MOBILE_SERVICE = "moodle_mobile_app"
 URL_SCHEME = "moodlemobile"
-KEYRING_SERVICE = "campus-sync"
 TOKEN_SEPARATOR = ":::"
 MIN_TOKEN_PARTS = 2
 
-# Only these read-only web service functions may be called.
-ALLOWED_FUNCTIONS = {"core_webservice_get_site_info"}
-
 logger = logging.getLogger("browser_login")
-
-
-class MoodleError(Exception):
-    """Moodle answered with an exception object instead of data."""
 
 
 def build_launch_url(site_url: str, passport: str) -> str:
@@ -90,36 +81,6 @@ def signature_matches(site_url: str, passport: str, signature: str) -> bool:
     """Return True if signature == md5(wwwroot + passport), as launch.php builds it."""
     expected = hashlib.md5((site_url + passport).encode("utf-8")).hexdigest()
     result = secrets.compare_digest(expected, signature)
-    return result
-
-
-def call_function(site_url: str, token: str, function: str, params: dict) -> dict:
-    """Call a whitelisted web service function and return its JSON data.
-
-    The token goes in the POST body, never in the URL.
-
-    Raises: ValueError if the function is not whitelisted;
-    requests.RequestException on network/HTTP errors;
-    MoodleError if Moodle returns an exception object.
-    """
-    if function not in ALLOWED_FUNCTIONS:
-        raise ValueError(f"Function not in whitelist: {function}")
-    endpoint = f"{site_url}/webservice/rest/server.php"
-    body = {"wstoken": token, "wsfunction": function, "moodlewsrestformat": "json"}
-    body.update(params)
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    with requests.post(endpoint, data=body, headers=headers, timeout=TIMEOUT_SECONDS) as response:
-        response.raise_for_status()
-        result = response.json()
-    if isinstance(result, dict) and "exception" in result:
-        raise MoodleError(f"{result.get('errorcode')}: {result.get('message')}")
-    return result
-
-
-def keyring_username(site_url: str, user_id: int) -> str:
-    """Return '<host><path>|<userid>' (the path keeps academic years apart)."""
-    parsed = urlparse(site_url)
-    result = f"{parsed.hostname}{parsed.path}|{user_id}"
     return result
 
 
