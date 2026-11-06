@@ -1,0 +1,1 @@
+"""Campus Sync for Moodle."""

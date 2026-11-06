@@ -9,10 +9,11 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | ID | Decisión | Recomendación |
 |---|---|---|
 | D1 | Método de inicio de sesión | **ACEPTADA (2026-11-06): flujo de navegador** (`launch.php`, §4). El QR solo funciona si el cliente se hace pasar por la app oficial (comprobación de User-Agent `MoodleMobile`), lo que choca con la normativa TIC de la UAB. Se confirma en la Fase 1. |
-| D2 | Varios PCs con la misma carpeta sincronizada | **Un único equipo propietario en la v1** (§6). Dos registros independientes sobre una carpeta compartida generan duplicados y copias en conflicto. |
-| D3 | Calendario | **Usar la exportación iCal nativa de Moodle** si el sitio la permite; exportador propio solo como respaldo (§8). Ahorra una fase entera y los UID ya son estables. |
-| D4 | Alias de asignatura | Conservar conectores "i"/"y" en minúscula (`CiOE`, `SDiLDH`) o ignorarlos (`COE`). Recomendado: conservarlos en minúscula. |
-| D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. |
+| D2 | Varios PCs con la misma carpeta sincronizada | **ACEPTADA (2026-11-06): un único equipo propietario en la v1** (§6). Dos registros independientes sobre una carpeta compartida generan duplicados y copias en conflicto. |
+| D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
+| D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
+| D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
+| D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. Pendiente de elegir nombre (se decidirá más adelante, antes de la Fase 5). |
 
 ## 2. Resumen
 
@@ -82,16 +83,15 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 7. API de Moodle
 
-- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_enrolled_courses_by_timeline_classification`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`, `core_calendar_get_calendar_export_token`.
+- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_enrolled_courses_by_timeline_classification`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`.
 - **Contenido visible:** `contents` solo llega si `uservisible`. Los `introattachments` pueden no aparecer fuera de plazo si el profesor lo configura así.
 - **Descarga:** `fileurl` por `webservice/pluginfile.php`, añadiendo el token.
-- **Calendario propio (respaldo de D3):** `core_calendar_get_calendar_events` con **todos los `courseids` seleccionados** y un rango `timestart`/`timeend`. Si no se pasan cursos, no devuelve los eventos de curso.
+- **Calendario (D3):** `core_calendar_get_calendar_events` con **todos los `courseids` seleccionados** y un rango `timestart`/`timeend`. Si no se pasan cursos, no devuelve los eventos de curso.
 - Comprobar en la Fase 1 si la URL de e-aules cambia por curso académico; en ese caso, el sitio se guarda por curso.
 
 ## 8. Calendario
 
-- **Opción preferida (D3):** exportación iCal nativa de Moodle. El token de exportación es un secreto y se trata como el token principal.
-- **Respaldo propio:** `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
+- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
 - **Limitación documentada:** importar no es sincronizar. Según el calendario, reimportar puede duplicar eventos, y los eventos borrados en Moodle no desaparecen. Hay que comprobar el comportamiento de Proton Calendar.
 
 ## 9. Requisitos no funcionales
@@ -113,7 +113,36 @@ Código fuente de Moodle, rama `MOODLE_405_STABLE`:
 - Calendario: `calendar/externallib.php`, `calendar/classes/external/export/token.php`.
 - `fileurl` con `revision`: `mod/resource/lib.php`, `mod/folder/lib.php`.
 
-Pendiente de completar en la Fase 1: configuración real de e-aules.
+### Fase 1: e-aules (verificado el 2026-11-06)
+
+`tool_mobile_get_public_config` (`poc/public_config.py`, sin sesión, vía `lib/ajax/service-nologin.php`):
+- `wwwroot` = `https://e-aules.uab.cat/2026-27`, HTTPS. **El curso académico forma parte de la URL**: cada curso es un sitio distinto (riesgo de §12 confirmado en la práctica; falta comprobar si el sitio del curso anterior sigue accesible).
+- `typeoflogin` = 2 (navegador del sistema), `launchurl` = `.../admin/tool/mobile/launch.php`, proveedor de identidad: CAS.
+- `release`, `version` y `qrcodetype` no aparecen en la configuración pública.
+
+Flujo de navegador (`poc/browser_login.py`):
+- **Funciona** con `service=moodle_mobile_app` y `urlscheme=moodlemobile`, sin tocar el User-Agent. El usuario copia la cabecera `Location` (`moodlemobile://token=...`) desde las DevTools y el script la lee con `getpass`.
+- La firma `md5(wwwroot + passport)` se verifica correctamente. Token de 32 caracteres.
+- `keyring` en Windows usa `WinVaultKeyring` (Administrador de credenciales).
+- `core_webservice_get_site_info`: Moodle **4.5.10+** (Build 20260320), versión `2024100710.05`; coincide con la rama analizada.
+- Usuario del keyring: `<host><ruta>|<userid>` (p. ej. `e-aules.uab.cat/2026-27|<id>`) en lugar de `<host>|<userid>`, porque cada curso académico es un sitio distinto.
+
+Cursos y contenidos (`poc/explore_api.py`, 2026-11-06):
+- `core_enrol_get_users_courses`: 10 cursos. 5 asignaturas del curso y 5 espacios que no son asignaturas (coordinación, información), con `enddate = 0`.
+- **`startdate` no sirve para deducir el curso académico**: en el sitio 2026-27 hay asignaturas con `startdate` 2026-07-20, 2026-08-31 e incluso 2023-07-11. Con la regla de §5 (corte el 1 de septiembre) irían a carpetas de cursos anteriores. Ver decisión D6.
+- `shortname` y `fullname` son iguales y llevan ruido: código `[MO86824]`, sufijos `(2026-27)` o `- Grau ... 26-27`. El generador de alias debe quitarlo.
+- `core_course_get_contents` (una asignatura): 6 secciones, 49 módulos (`resource`, `folder`, `assign`, `forum`, `label`, `page`, `groupselect`), 12 con `uservisible = false`, 27 archivos (45 MB). **Todos los `fileurl` usan `webservice/pluginfile.php`**, como espera §7. En esta asignatura no hay módulos `url`.
+
+Calendario (D3):
+- `core_calendar_get_calendar_export_token` funciona: token de 40 caracteres. No se usará: D3 se decidió por el exportador propio.
+
+Sitio por curso académico:
+- `https://e-aules.uab.cat/2025-26` sigue activo con la misma configuración (`typeoflogin` 2, CAS). Cada curso es un sitio distinto, con su propio token. No se ha comprobado qué cursos tiene el usuario en el sitio anterior.
+
+Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
+- `core_calendar_get_calendar_events` con los 10 `courseids` y la ventana de §8: 6 eventos (5 `due` de `assign`, 1 `close` de `quiz`), sin avisos. **Todos con `timeduration = 0`**: la regla `DTEND = DTSTART` de §8 se aplica a todos.
+- `mod_assign_get_assignments` (una asignatura): 5 tareas, 4 con `introattachments`, 8 archivos (8,6 MB), todos por `webservice/pluginfile.php`. No hay `introfiles`.
+- `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos. Los 4 avisos son `item: module`, `warningcode: 1`, "No access rights in module context": son las 4 tareas a las que el usuario no tiene acceso (probablemente las ocultas o restringidas, `uservisible = false`; no se ha cruzado con la grabación de contenidos). **Consecuencia:** un aviso de este tipo es normal, no un error; la sincronización lo registra y sigue (RNF de robustez, §9).
 
 ## 11. Legal y distribución
 
@@ -130,7 +159,7 @@ Pendiente de completar en la Fase 1: configuración real de e-aules.
 |---|---|
 | El flujo de navegador no está habilitado en e-aules | Consultar `typeoflogin` en la Fase 1; si no hay vía legítima, el proyecto se replantea |
 | La URL de e-aules cambia cada curso | Guardar el sitio por curso académico; nuevo inicio de sesión al cambiar de curso |
-| Proton Calendar duplica eventos al reimportar | Exportación nativa con suscripción, o borrar e importar |
+| Proton Calendar duplica eventos al reimportar | UID estables; si aun así duplica, documentar "borrar el calendario e importar" |
 | Cambios en Moodle rompen la app | Pruebas con respuestas grabadas; código abierto |
 | Antivirus o SmartScreen bloquean el ejecutable | `--onedir`, compilación en CI, SignPath |
 

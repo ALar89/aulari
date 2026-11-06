@@ -6,8 +6,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 
 ## 1. Estado
 
-- Diseño cerrado **salvo lo que decida la prueba de concepto** (Fase 1).
-- Siguiente paso: **Fase 1** (sección 7).
+- **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
+- Siguiente paso: **Fase 2**, núcleo sin interfaz (`docs/design.md` §13).
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
@@ -80,7 +80,7 @@ def read_config(path: Path) -> dict:
 
 ## 5. Entorno y comandos (Windows, PowerShell)
 
-- Python 3.12. Entorno: `py -3.12 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
+- Python 3.14. Entorno: `py -3.14 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
 - Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `ruff`. **Cualquier otra se pide antes de instalarla.**
 - Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
 - Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
