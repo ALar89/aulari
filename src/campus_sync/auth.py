@@ -49,12 +49,19 @@ def build_launch_url(site_url: str, passport: str) -> str:
 def _extract_payload(pasted_url: str) -> str:
     """Return the base64 text after 'token=' in the pasted redirect URL.
 
+    When Windows passes moodlemobile://token=... to the app, the browser adds
+    a trailing '/' (verified on e-aules, design.md section 10). Moodle always
+    pads its base64 to a multiple of 4 characters, so one extra '/' that
+    breaks that length is removed; a '/' that belongs to the data is kept.
+
     Raises: ValueError if the text does not contain 'token='.
     """
     position = pasted_url.find(TOKEN_MARKER)
     if position < 0:
         raise ValueError("The pasted text does not contain 'token='")
     result = unquote(pasted_url[position + len(TOKEN_MARKER) :].strip())
+    if result.endswith("/") and len(result) % 4 == 1:
+        result = result[:-1]
     return result
 
 

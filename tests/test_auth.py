@@ -124,6 +124,16 @@ class ParseRedirectTests(unittest.TestCase):
         )
         self.assertEqual(auth.parse_launch_redirect(url.rstrip("="), SITE, PASSPORT), TOKEN)
 
+    def test_trailing_slash_from_browser_is_removed(self) -> None:
+        """Windows/browser add a '/' after the payload (seen on e-aules); it is ignored."""
+        url = make_redirect(SITE, PASSPORT, TOKEN, PRIVATE_TOKEN) + "/"
+        self.assertEqual(auth.parse_launch_redirect(url, SITE, PASSPORT), TOKEN)
+
+    def test_slash_that_belongs_to_the_data_is_kept(self) -> None:
+        """A '/' inside a correctly padded payload is data, not an extra slash."""
+        payload = base64.b64encode(bytes([255, 255, 255])).decode("ascii")  # "////"
+        self.assertEqual(auth._extract_payload("moodlemobile://token=" + payload), "////")
+
     def test_wrong_passport_or_site_is_rejected(self) -> None:
         """A redirect from another attempt or another site fails the signature."""
         url = make_redirect(SITE, PASSPORT, TOKEN)
