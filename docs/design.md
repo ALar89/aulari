@@ -91,7 +91,10 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 8. Calendario
 
-- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
+- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<curso académico>.<host>` (el curso evita choques de id entre los sitios de cada año, D6), horas en UTC, `DTSTAMP` y `SEQUENCE`, ventana de hoy −30 días a +1 año.
+- **Eventos sin duración** (decidido el 2026-11-06): **sin `DTEND`**. RFC 5545 exige que `DTEND` sea posterior a `DTSTART`; un `VEVENT` con `DTSTART` de fecha y hora y sin `DTEND` dura cero, que es lo que se quería con `DTEND = DTSTART`.
+- **`SEQUENCE`:** tabla `calendar_events` del registro; sube cuando cambia el `timemodified` del evento.
+- **Archivo** (decidido el 2026-11-06): `<destino>/<curso académico>/calendari.ics`, uno por curso (cada curso es un sitio). Lo genera la app, así que se reemplaza en cada exportación, de forma atómica.
 - **Limitación documentada:** importar no es sincronizar. Según el calendario, reimportar puede duplicar eventos, y los eventos borrados en Moodle no desaparecen. Hay que comprobar el comportamiento de Proton Calendar.
 
 ## 9. Requisitos no funcionales
@@ -150,6 +153,12 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - Los módulos `page` listan un `index.html` generado con `filesize = 0`: no son comparables por tamaño y quedan fuera de la v1 (§14). La sincronización debe ignorarlos.
 - **Sincronización real de una asignatura** (`poc/sync_one_course.py`, núcleo completo): primera ejecución, 33 archivos nuevos y 0 errores; segunda ejecución, 33 sin cambios y 0 descargas. Cuadrado con las grabaciones: 25 archivos de `resource`/`folder` + 8 adjuntos de tareas = 33, sin claves duplicadas. Los 2 que faltan para 35 son del único módulo `page`: su `index.html` (`filesize = 0`) y **un PDF de 0,9 MB incrustado en la página**, que hoy se ignora porque los `page` quedan fuera de la v1. **Decidido (2026-11-06):** se descargan los archivos incrustados en páginas, en una subcarpeta con el nombre de la página, sin el `index.html`. Verificado: la tercera ejecución descargó 1 archivo nuevo (el PDF) y dejó 33 sin cambios; total 34 = 35 menos el `index.html`.
 
+### Fase 3: calendario (verificado el 2026-11-06)
+
+- `poc/export_calendar.py` con los 10 cursos: 6 eventos (`SO` 3, `SDiLDH` 1, `EC` 2), ninguno con `DTEND`.
+- **Proton Calendar** importa el archivo en un calendario de prueba: hora local correcta (23:59), título `[SO] …` con acentos correctos y duración cero mostrada como «23:59 – 23:59».
+- **Reimportar el mismo archivo no duplica eventos** (UID estables): el riesgo de §12 queda resuelto para Proton. Falta ver qué pasa cuando un evento cambia (`SEQUENCE` 1) o desaparece de Moodle.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
@@ -165,7 +174,7 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 |---|---|
 | El flujo de navegador no está habilitado en e-aules | Consultar `typeoflogin` en la Fase 1; si no hay vía legítima, el proyecto se replantea |
 | La URL de e-aules cambia cada curso | Guardar el sitio por curso académico; nuevo inicio de sesión al cambiar de curso |
-| Proton Calendar duplica eventos al reimportar | UID estables; si aun así duplica, documentar "borrar el calendario e importar" |
+| Proton Calendar duplica eventos al reimportar | **Comprobado (2026-11-06): no duplica** gracias a los UID estables. Pendiente: eventos modificados o borrados en Moodle |
 | Cambios en Moodle rompen la app | Pruebas con respuestas grabadas; código abierto |
 | Antivirus o SmartScreen bloquean el ejecutable | `--onedir`, compilación en CI, SignPath |
 
