@@ -4,6 +4,7 @@ import base64
 import hashlib
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 
 import keyring
@@ -221,6 +222,23 @@ class SyncTests(AppTestCase):
             (self.destination / "2026-27" / "SO" / "00 - General" / "guia.pdf").exists()
         )
         self.assertFalse((self.destination / "2026-27" / "VIUUAB").exists())
+
+    def test_news_file_after_sync(self) -> None:
+        """A sync with new files writes Novedades.txt and reports its path."""
+        self.app.set_destination(self.destination)
+        result = self.app.run_sync(self.choices)
+        self.assertEqual(result.news_path, self.destination / "2026-27" / "Novedades.txt")
+        self.assertIn("[SO] 00 - General/guia.pdf", result.news_path.read_text(encoding="utf-8"))
+        self.assertIsNone(self.app.run_sync(self.choices).news_path)
+
+    def test_upcoming_deadlines(self) -> None:
+        """Only future events of the selected courses, with their alias."""
+        now = datetime.fromtimestamp(1789000000, UTC)
+        deadlines = self.app.upcoming_deadlines(self.app.list_courses(), now)
+        self.assertEqual(len(deadlines), 1)
+        self.assertEqual((deadlines[0].course_alias, deadlines[0].name), ("SO", "Entrega"))
+        later = datetime.fromtimestamp(1790000001, UTC)
+        self.assertEqual(self.app.upcoming_deadlines(self.app.list_courses(), later), [])
 
     def test_other_owner_then_take_over(self) -> None:
         """Another computer's folder is refused until take_over()."""

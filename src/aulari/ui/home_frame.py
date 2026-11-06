@@ -5,8 +5,11 @@ widgets from the main thread, in the worker callbacks.
 """
 
 import functools
+import os
+import sys
 import threading
 import tkinter as tk
+import webbrowser
 from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -18,10 +21,20 @@ from aulari.moodle_client import InvalidTokenError
 from aulari.sync import NotOwnerError, Progress
 from aulari.texts import text
 from aulari.ui.messages import error_message
-from aulari.ui.summary import course_label, progress_text, summary_text
+from aulari.ui.summary import course_label, deadline_line, progress_text, summary_text
 from aulari.ui.worker import Worker
 
 PADDING = 12
+
+
+def open_in_explorer(folder: Path) -> None:
+    """Show a folder in the system file explorer (Windows: Explorer)."""
+    if sys.platform == "win32":
+        os.startfile(folder)  # noqa: S606 - opens a folder, never a downloaded file
+    else:
+        webbrowser.open(folder.as_uri())
+
+
 WRAP_PIXELS = 520
 
 
@@ -45,6 +58,7 @@ class HomeFrame(ttk.Frame):
         self._cancel = threading.Event()
         self._destination = tk.StringVar(value=app.settings.destination)
         self._status = tk.StringVar()
+        self._deadlines = tk.StringVar()
         self._build()
         self._load_courses()
 
@@ -66,6 +80,11 @@ class HomeFrame(ttk.Frame):
         self._courses = ttk.Frame(self)
         self._courses.pack(fill="x")
 
+        ttk.Label(self, text=text("deadlines_title"), font=("", 12, "bold")).pack(
+            anchor="w", pady=(PADDING, 0)
+        )
+        ttk.Label(self, textvariable=self._deadlines, justify="left").pack(anchor="w")
+
         ttk.Label(self, text=text("destination_label"), font=("", 12, "bold")).pack(
             anchor="w", pady=(PADDING, 0)
         )
@@ -78,6 +97,8 @@ class HomeFrame(ttk.Frame):
             row, text=text("destination_choose"), command=self._choose_destination
         )
         self._choose_button.pack(side="left", padx=(PADDING, 0))
+        self._open_button = ttk.Button(row, text=text("open_folder"), command=self._open_folder)
+        self._open_button.pack(side="left", padx=(PADDING, 0))
 
         buttons = ttk.Frame(self)
         buttons.pack(fill="x", pady=(PADDING, 0))
@@ -105,6 +126,7 @@ class HomeFrame(ttk.Frame):
         self._sync_button.configure(state=state)
         self._restore_button.configure(state=state)
         self._choose_button.configure(state=state)
+        self._open_button.configure(state=state)
         self._logout_button.configure(state=state)
         self._cancel_button.configure(state="normal" if syncing else "disabled")
         for row in self._courses.winfo_children():
@@ -146,7 +168,27 @@ class HomeFrame(ttk.Frame):
         self._status.set(text("courses_new") if new_courses else "")
         if not self._choices:
             self._status.set(text("courses_none"))
+        self._load_deadlines()
+
+    # --- upcoming deadlines (RF15) -------------------------------------
+
+    def _load_deadlines(self) -> None:
+        """Fetch the upcoming deadlines in the background (controls stay disabled)."""
+        self._set_busy(True)
+        self._deadlines.set(text("deadlines_loading"))
+        task = functools.partial(self._app.upcoming_deadlines, self._choices)
+        self._worker.start(task, self._deadlines_loaded, self._deadlines_failed)
+
+    def _deadlines_loaded(self, deadlines: object) -> None:
+        """Main thread: show one line per deadline."""
+        lines = [deadline_line(deadline) for deadline in deadlines]
+        self._deadlines.set("\n".join(lines) if lines else text("deadlines_none"))
         self._set_busy(False)
+
+    def _deadlines_failed(self, error: Exception) -> None:
+        """Main thread: deadlines are optional; show a short note and go on."""
+        self._deadlines.set(text("deadlines_unavailable"))
+        self._task_failed(error)
 
     def _ask_alias(self, choice: CourseChoice) -> None:
         """Ask for a new folder alias and rename the course folder (RF4)."""
@@ -181,6 +223,17 @@ class HomeFrame(ttk.Frame):
         if folder:
             self._app.set_destination(Path(folder))
             self._destination.set(self._app.settings.destination)
+
+    def _open_folder(self) -> None:
+        """Open the destination folder in the file explorer (RF13).
+
+        Only the folder is opened, never a downloaded file.
+        """
+        folder = Path(self._app.settings.destination) if self._app.settings.destination else None
+        if folder is not None and folder.is_dir():
+            open_in_explorer(folder)
+        else:
+            self._status.set(text("error_no_destination"))
 
     # --- sync ----------------------------------------------------------
 
@@ -217,6 +270,8 @@ class HomeFrame(ttk.Frame):
             self._status.set(summary_text(result))
             if result.summary.invalid_token:
                 self._session_expired()
+            else:
+                self._load_deadlines()
 
     def _sync_failed(self, error: Exception) -> None:
         """Main thread: offer to take over a folder owned by another computer."""

@@ -5,19 +5,21 @@ everything here can be tested without a window. Methods that use the
 network are meant to run in a worker thread (CLAUDE.md section 3).
 """
 
+import logging
 import sqlite3
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 import requests
 
-from aulari import auth, organizer
+from aulari import auth, calendar_export, news, organizer
 from aulari.calendar_export import CalendarRequest, export_calendar
 from aulari.config import Settings, load_settings, save_settings
 from aulari.moodle_client import MoodleClient, MoodleError
+from aulari.organizer import LOCAL_TIMEZONE
 from aulari.registry import Registry
 from aulari.sync import (
     Course,
@@ -31,6 +33,19 @@ from aulari.sync import (
 )
 
 REGISTRY_NAME = "registry.sqlite3"
+DEADLINE_DAYS = 60
+MAX_DEADLINES = 8
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Deadline:
+    """An upcoming calendar event of a selected course (RF15)."""
+
+    timestart: int
+    course_alias: str
+    name: str
 
 
 class AppError(Exception):
@@ -61,6 +76,13 @@ class SyncResult:
     calendar_path: Path | None = None
     calendar_events: int = 0
     calendar_error: str = ""
+    news_path: Path | None = None  # Novedades.txt, if this sync changed anything (RF14)
+
+
+def _event_start(event: calendar_export.CalendarEvent) -> int:
+    """Sort key: event start time."""
+    result = event.timestart
+    return result
 
 
 class CampusApp:
@@ -202,6 +224,41 @@ class CampusApp:
             )
         self.settings.known_courses = sorted(int(course["id"]) for course in enrolled)
         self.save()
+        return result
+
+    # --- upcoming deadlines (RF15) --------------------------------------
+
+    def upcoming_deadlines(
+        self, courses: list[CourseChoice], now: datetime | None = None
+    ) -> list[Deadline]:
+        """Return the next MAX_DEADLINES events of the selected courses (RF15).
+
+        Only events from now to DEADLINE_DAYS days ahead are kept, sorted by date.
+
+        Raises: AppError, MoodleError, requests.RequestException.
+        """
+        moment = now if now is not None else datetime.now(UTC)
+        selected = [
+            choice for choice in courses if choice.course_id in self.settings.selected_courses
+        ]
+        aliases = {
+            choice.course_id: choice.alias or organizer.course_alias(choice.fullname)
+            for choice in selected
+        }
+        result = []
+        if aliases:
+            with self._client_factory(self.settings.site_url, self._token()) as client:
+                events = calendar_export.fetch_events(client, sorted(aliases), moment)
+            start = int(moment.timestamp())
+            end = int((moment + timedelta(days=DEADLINE_DAYS)).timestamp())
+            upcoming = sorted(
+                [event for event in events if start <= event.timestart <= end],
+                key=_event_start,
+            )
+            result = [
+                Deadline(event.timestart, aliases.get(event.course_id, ""), event.name)
+                for event in upcoming[:MAX_DEADLINES]
+            ]
         return result
 
     # --- aliases (RF4) --------------------------------------------------
@@ -355,7 +412,17 @@ class CampusApp:
             result = SyncResult(summary)
             if not summary.invalid_token and not summary.cancelled:
                 self._export_calendar(client, registry, target, result)
+        self._write_news(target, result)
         return result
+
+    def _write_news(self, target: SyncTarget, result: SyncResult) -> None:
+        """Add this sync's changes to Novedades.txt (a failure is only logged)."""
+        path = news.news_path(target.destination, target.academic_year)
+        try:
+            if news.write_news(path, result.summary.changes, datetime.now(LOCAL_TIMEZONE)):
+                result.news_path = path
+        except OSError as error:
+            logger.warning("Could not write %s: %s", path.name, error)
 
     def take_over(self) -> None:
         """Make this computer the owner of the destination folder (D2).

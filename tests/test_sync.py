@@ -147,6 +147,8 @@ class FirstSyncTests(SyncTestCase):
         summary = self.run_sync()
         self.assertEqual(summary.new, 3)
         self.assertEqual(summary.errors, [])
+        self.assertEqual(len(summary.changes), 3)
+        self.assertFalse(any(change.is_new_version for change in summary.changes))
         self.assertEqual(
             self.files(),
             [
@@ -203,6 +205,10 @@ class SecondSyncTests(SyncTestCase):
         self.moodle.add_resource(GUIDE_CMID, "guia.pdf", b"guide version 2", T2)
         summary = self.run_sync()
         self.assertEqual(summary.new_versions, 1)
+        self.assertEqual(
+            summary.changes,
+            [sync.ChangedFile("2026-27/SO/01 - Tema 1/guia (2026-11-06).pdf", True)],
+        )
         self.assertEqual((self.section_dir / "guia.pdf").read_bytes(), b"guide v1")
         self.assertEqual(
             (self.section_dir / "guia (2026-11-06).pdf").read_bytes(), b"guide version 2"

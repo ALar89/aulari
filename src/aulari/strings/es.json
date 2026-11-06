@@ -63,5 +63,15 @@
   "alias_done": "Carpeta renombrada a «{alias}».",
   "error_alias_invalid": "Ese nombre de carpeta no es válido.",
   "error_alias_not_synced": "Sincroniza la asignatura una vez antes de cambiar su carpeta.",
-  "error_alias_taken": "Ya hay otra carpeta con ese nombre en este curso académico."
+  "error_alias_taken": "Ya hay otra carpeta con ese nombre en este curso académico.",
+  "news_header": "== {date} — {count} novedades ==",
+  "change_new_version_tag": "(nueva versión)",
+  "summary_news": "Lista de novedades: {path}",
+  "open_folder": "Abrir carpeta",
+  "deadlines_title": "Próximas entregas",
+  "deadlines_loading": "Cargando fechas…",
+  "deadlines_none": "No hay entregas en las próximas semanas.",
+  "deadlines_unavailable": "No se han podido cargar las fechas.",
+  "deadline_line": "{weekday} {date}  [{course}] {name}",
+  "weekdays": "lun,mar,mié,jue,vie,sáb,dom"
 }

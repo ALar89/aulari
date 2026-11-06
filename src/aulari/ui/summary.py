@@ -1,7 +1,8 @@
 """Build the user-facing texts of a sync result (no tkinter, so it is testable)."""
 
-from aulari.app import CourseChoice, SyncResult
+from aulari.app import CourseChoice, Deadline, SyncResult
 from aulari.log_filter import redact
+from aulari.organizer import to_local_time
 from aulari.sync import Progress
 from aulari.texts import text
 
@@ -25,6 +26,20 @@ def progress_text(report: Progress) -> str:
         done=report.done + 1,
         total=report.total,
         filename=report.filename,
+    )
+    return result
+
+
+def deadline_line(deadline: Deadline) -> str:
+    """Return 'lun 09/11 23:59  [SO] Entrega P1' in Europe/Madrid time (RF15)."""
+    moment = to_local_time(deadline.timestart)
+    weekdays = text("weekdays").split(",")
+    result = text(
+        "deadline_line",
+        weekday=weekdays[moment.weekday()],
+        date=moment.strftime("%d/%m %H:%M"),
+        course=deadline.course_alias or "—",
+        name=deadline.name,
     )
     return result
 
@@ -53,6 +68,8 @@ def summary_text(result: SyncResult) -> str:
         lines.append(f"  • {message}")
     if len(summary.errors) > MAX_ERRORS_SHOWN:
         lines.append(text("summary_more_errors", count=len(summary.errors) - MAX_ERRORS_SHOWN))
+    if result.news_path is not None:
+        lines.append(text("summary_news", path=result.news_path))
     if result.calendar_path is not None:
         lines.append(text("calendar_done", count=result.calendar_events, path=result.calendar_path))
     elif result.calendar_error:
