@@ -29,7 +29,6 @@ from campus_sync.sync import (
 )
 
 REGISTRY_NAME = "registry.sqlite3"
-IN_PROGRESS = "inprogress"
 
 
 class AppError(Exception):
@@ -47,7 +46,6 @@ class CourseChoice:
 
     course_id: int
     fullname: str
-    in_progress: bool
     is_new: bool
     selected: bool
 
@@ -162,50 +160,39 @@ class CampusApp:
 
     # --- courses -------------------------------------------------------
 
-    def _fetch_course_lists(self) -> tuple[list[dict], set[int]]:
-        """Return (enrolled courses, ids of courses in progress).
+    def _fetch_courses(self) -> list[dict]:
+        """Return the enrolled courses of the user.
 
         Raises: AppError, MoodleError, requests.RequestException.
         """
         with self._client_factory(self.settings.site_url, self._token()) as client:
-            enrolled = client.call(
-                "core_enrol_get_users_courses", {"userid": self.settings.user_id}
-            )
-            timeline = client.call(
-                "core_course_get_enrolled_courses_by_timeline_classification",
-                {"classification": IN_PROGRESS},
-            )
-        in_progress = {int(course["id"]) for course in timeline.get("courses", [])}
-        result = (enrolled, in_progress)
+            result = client.call("core_enrol_get_users_courses", {"userid": self.settings.user_id})
         return result
 
     def list_courses(self) -> list[CourseChoice]:
         """Return the courses for the selection list and remember them (RF3).
 
-        First time: courses in progress are selected. Later: the saved
-        selection is kept, and courses never seen before are marked new and
-        left unselected until the user ticks them.
+        First time: nothing is selected, the user chooses (on e-aules the
+        'in progress' classification also includes spaces that are not
+        subjects, design.md section 10). Later: the saved selection is kept,
+        and courses never seen before are marked new and left unselected.
 
         Raises: AppError, MoodleError, requests.RequestException, OSError.
         """
-        enrolled, in_progress = self._fetch_course_lists()
+        enrolled = self._fetch_courses()
         first_time = not self.settings.known_courses
         known = set(self.settings.known_courses)
         selected = set(self.settings.selected_courses)
         result = []
         for course in enrolled:
             course_id = int(course["id"])
-            is_current = course_id in in_progress
             is_new = not first_time and course_id not in known
-            chosen = is_current if first_time else course_id in selected
             result.append(
-                CourseChoice(course_id, str(course.get("fullname", "")), is_current, is_new, chosen)
+                CourseChoice(
+                    course_id, str(course.get("fullname", "")), is_new, course_id in selected
+                )
             )
         self.settings.known_courses = sorted(int(course["id"]) for course in enrolled)
-        if first_time:
-            self.settings.selected_courses = sorted(
-                choice.course_id for choice in result if choice.selected
-            )
         self.save()
         return result
 

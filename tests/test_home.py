@@ -16,8 +16,8 @@ from campus_sync.ui.worker import Worker
 
 TOKEN = "0123456789abcdef0123456789abcdef"
 CHOICES = [
-    CourseChoice(1072, "Sistemes Operatius", True, False, True),
-    CourseChoice(999, "Xarxes", False, True, False),
+    CourseChoice(1072, "Sistemes Operatius", False, True),
+    CourseChoice(999, "Xarxes", True, False),
 ]
 TIMEOUT_MS = 3000
 

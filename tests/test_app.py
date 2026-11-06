@@ -50,7 +50,6 @@ class FakeClient:
     """Fake MoodleClient for every function CampusApp uses."""
 
     enrolled = list(COURSES)
-    in_progress = [1072, 472]
 
     def __init__(self, site_url: str, token: str) -> None:
         """Remember the token used."""
@@ -70,9 +69,6 @@ class FakeClient:
         answers = {
             "core_webservice_get_site_info": {"userid": 42, "siteurl": SITE},
             "core_enrol_get_users_courses": FakeClient.enrolled,
-            "core_course_get_enrolled_courses_by_timeline_classification": {
-                "courses": [{"id": course_id} for course_id in FakeClient.in_progress]
-            },
             "core_course_get_contents": [
                 {
                     "id": course_id * 10,
@@ -169,14 +165,14 @@ class LoginTests(AppTestCase):
 class CourseListTests(AppTestCase):
     """Course selection rules (RF3)."""
 
-    def test_first_time_selects_courses_in_progress(self) -> None:
-        """Courses in progress are pre-selected; the others are not."""
+    def test_first_time_selects_nothing(self) -> None:
+        """The first list has nothing selected and nothing marked new (user decides)."""
         self.log_in()
-        choices = {choice.course_id: choice for choice in self.app.list_courses()}
-        self.assertTrue(choices[1072].selected and choices[472].selected)
-        self.assertFalse(choices[402].selected)
-        self.assertFalse(any(choice.is_new for choice in choices.values()))
-        self.assertEqual(self.app.settings.selected_courses, [472, 1072])
+        choices = self.app.list_courses()
+        self.assertEqual(len(choices), len(COURSES))
+        self.assertFalse(any(choice.selected or choice.is_new for choice in choices))
+        self.assertEqual(self.app.settings.selected_courses, [])
+        self.assertEqual(self.app.settings.known_courses, [402, 472, 1072])
 
     def test_new_course_is_proposed_not_selected(self) -> None:
         """A course that appears later is marked new and left unselected."""
@@ -205,6 +201,7 @@ class SyncTests(AppTestCase):
         super().setUp()
         self.log_in()
         self.choices = self.app.list_courses()
+        self.app.set_selection([472, 1072])
 
     def test_destination_is_required(self) -> None:
         """Without a destination folder the sync does not start."""
