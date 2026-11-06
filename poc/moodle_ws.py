@@ -18,6 +18,8 @@ ALLOWED_FUNCTIONS = {
     "core_enrol_get_users_courses",
     "core_course_get_contents",
     "core_calendar_get_calendar_export_token",
+    "core_calendar_get_calendar_events",
+    "mod_assign_get_assignments",
 }
 
 
