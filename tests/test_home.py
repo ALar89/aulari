@@ -1,5 +1,6 @@
 """Tests for the main screen texts and a smoke test of HomeFrame with a fake app."""
 
+import tempfile
 import threading
 import tkinter as tk
 import unittest
@@ -13,6 +14,7 @@ from aulari.sync import Progress, SyncSummary
 from aulari.texts import text
 from aulari.ui import summary
 from aulari.ui.home_frame import HomeFrame
+from aulari.ui.news_window import NewsWindow
 from aulari.ui.worker import Worker
 
 TOKEN = "0123456789abcdef0123456789abcdef"
@@ -162,6 +164,27 @@ class HomeFrameSmokeTests(unittest.TestCase):
         self.pump_until(lambda: "Entrega P1" in self.frame._deadlines.get())
         self.assertIn("[SO] Entrega P1", self.frame._deadlines.get())
         self.assertEqual(str(self.frame._sync_button.cget("state")), "normal")
+
+
+class NewsWindowTests(unittest.TestCase):
+    """NewsWindow shows the file read-only."""
+
+    def test_shows_file_content(self) -> None:
+        """The text widget holds the file and cannot be edited."""
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            self.skipTest("No display available for Tkinter")
+        root.withdraw()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / "Novedades.txt"
+                path.write_text("== 2026-11-06 ==\n  [SO] Tema 1.pdf\n", encoding="utf-8")
+                window = NewsWindow(root, path)
+                self.assertIn("[SO] Tema 1.pdf", window.text.get("1.0", "end"))
+                self.assertEqual(str(window.text.cget("state")), "disabled")
+        finally:
+            root.destroy()
 
 
 if __name__ == "__main__":

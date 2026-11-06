@@ -269,6 +269,13 @@ class AliasTests(AppTestCase):
         choices = {choice.course_id: choice for choice in self.app.list_courses()}
         self.assertEqual((choices[1072].alias, choices[402].alias), ("SO", ""))
 
+    def test_course_folder_and_news_file(self) -> None:
+        """Synced courses have a folder on disk; Novedades.txt exists after the sync."""
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertEqual(self.app.course_folder(choices[1072]), self.year_dir / "SO")
+        self.assertIsNone(self.app.course_folder(choices[402]))
+        self.assertEqual(self.app.news_file(), self.year_dir / "Novedades.txt")
+
     def test_rename_moves_folder_and_keeps_sync_working(self) -> None:
         """The folder moves, the registry follows, and the next sync finds everything."""
         self.assertEqual(self.app.rename_course(1072, " SistOp "), "SistOp")

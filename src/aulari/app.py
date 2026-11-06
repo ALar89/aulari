@@ -226,6 +226,28 @@ class CampusApp:
         self.save()
         return result
 
+    # --- folders and news ----------------------------------------------
+
+    def course_folder(self, choice: CourseChoice) -> Path | None:
+        """Return the folder of a synced course on disk, or None if it does not exist."""
+        result = None
+        year = organizer.academic_year_from_site(self.settings.site_url)
+        if choice.alias and year is not None and self.settings.destination:
+            folder = Path(self.settings.destination) / year / choice.alias
+            if folder.is_dir():
+                result = folder
+        return result
+
+    def news_file(self) -> Path | None:
+        """Return Novedades.txt of the current academic year, or None if there is none yet."""
+        result = None
+        year = organizer.academic_year_from_site(self.settings.site_url)
+        if year is not None and self.settings.destination:
+            path = news.news_path(Path(self.settings.destination), year)
+            if path.is_file():
+                result = path
+        return result
+
     # --- upcoming deadlines (RF15) --------------------------------------
 
     def upcoming_deadlines(

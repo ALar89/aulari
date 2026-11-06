@@ -21,6 +21,7 @@ from aulari.moodle_client import InvalidTokenError
 from aulari.sync import NotOwnerError, Progress
 from aulari.texts import text
 from aulari.ui.messages import error_message
+from aulari.ui.news_window import NewsWindow
 from aulari.ui.summary import course_label, deadline_line, progress_text, summary_text
 from aulari.ui.worker import Worker
 
@@ -110,6 +111,8 @@ class HomeFrame(ttk.Frame):
             command=functools.partial(self._sync, restore_missing=True),
         )
         self._restore_button.pack(side="left", padx=(PADDING, 0))
+        self._news_button = ttk.Button(buttons, text=text("news_button"), command=self._show_news)
+        self._news_button.pack(side="left", padx=(PADDING, 0))
         self._cancel_button = ttk.Button(
             buttons, text=text("cancel_button"), command=self._cancel_sync, state="disabled"
         )
@@ -125,6 +128,7 @@ class HomeFrame(ttk.Frame):
         state = "disabled" if busy else "normal"
         self._sync_button.configure(state=state)
         self._restore_button.configure(state=state)
+        self._news_button.configure(state=state)
         self._choose_button.configure(state=state)
         self._open_button.configure(state=state)
         self._logout_button.configure(state=state)
@@ -164,6 +168,11 @@ class HomeFrame(ttk.Frame):
                     text=text("alias_button", alias=choice.alias),
                     command=functools.partial(self._ask_alias, choice),
                 ).pack(side="right")
+                ttk.Button(
+                    row,
+                    text=text("open_course_folder"),
+                    command=functools.partial(self._open_course_folder, choice),
+                ).pack(side="right", padx=(0, PADDING // 2))
         new_courses = [choice for choice in self._choices if choice.is_new]
         self._status.set(text("courses_new") if new_courses else "")
         if not self._choices:
@@ -234,6 +243,25 @@ class HomeFrame(ttk.Frame):
             open_in_explorer(folder)
         else:
             self._status.set(text("error_no_destination"))
+
+    def _open_course_folder(self, choice: CourseChoice) -> None:
+        """Open the folder of one course in the file explorer."""
+        folder = self._app.course_folder(choice)
+        if folder is not None:
+            open_in_explorer(folder)
+        else:
+            self._status.set(text("course_folder_missing"))
+
+    def _show_news(self) -> None:
+        """Show Novedades.txt in a scrollable window inside the app."""
+        path = self._app.news_file()
+        if path is None:
+            self._status.set(text("news_none"))
+        else:
+            try:
+                NewsWindow(self, path)
+            except OSError as error:
+                self._status.set(error_message(error))
 
     # --- sync ----------------------------------------------------------
 

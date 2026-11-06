@@ -73,5 +73,11 @@
   "deadlines_none": "No hay entregas en las próximas semanas.",
   "deadlines_unavailable": "No se han podido cargar las fechas.",
   "deadline_line": "{weekday} {date}  [{course}] {name}",
-  "weekdays": "lun,mar,mié,jue,vie,sáb,dom"
+  "weekdays": "lun,mar,mié,jue,vie,sáb,dom",
+  "open_course_folder": "Abrir",
+  "course_folder_missing": "La carpeta de esta asignatura todavía no existe: sincronízala primero.",
+  "news_button": "Ver novedades",
+  "news_none": "Todavía no hay novedades: aparecerán después de una sincronización con archivos nuevos.",
+  "news_window_title": "Novedades",
+  "close_button": "Cerrar"
 }
