@@ -100,7 +100,10 @@ class FakeClient:
             },
             "mod_assign_get_submission_status": {
                 "lastattempt": {"submission": {"status": "submitted"}},
-                "feedback": {"gradefordisplay": "8,50", "plugins": [{"type": "comments"}]},
+                "feedback": {
+                    "gradefordisplay": "8,50&nbsp;/&nbsp;10,00",
+                    "plugins": [{"type": "comments"}],
+                },
             },
             "mod_forum_get_forums_by_courses": [
                 {"id": 3003, "course": 1072, "type": "news"},
@@ -380,7 +383,8 @@ class ExtrasTests(AppTestCase):
         self.assertEqual(len(rows), 1)
         row = rows[0]
         self.assertEqual(
-            (row.course_alias, row.name, row.status, row.grade), ("SO", "P1", "submitted", "8,50")
+            (row.course_alias, row.name, row.status, row.grade),
+            ("SO", "P1", "submitted", "8,50 / 10,00"),
         )
         self.assertTrue(row.has_comments)
 

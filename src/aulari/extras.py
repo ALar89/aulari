@@ -131,7 +131,8 @@ def _submission_row(client: MoodleClient, alias: str, assignment: dict) -> Submi
         submission = (data.get("lastattempt") or {}).get("submission") or {}
         feedback = data.get("feedback") or {}
         status = str(submission.get("status") or "new")
-        grade = _text(feedback.get("gradefordisplay"))
+        # gradefordisplay is HTML ('9,83&nbsp;/&nbsp;10,00'): keep only the text.
+        grade = _text(plain_text(str(feedback.get("gradefordisplay") or "")))
         has_comments = bool(feedback.get("plugins"))
     except InvalidTokenError:
         raise
