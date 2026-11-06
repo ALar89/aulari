@@ -122,13 +122,20 @@ def _owner_path(destination: Path) -> Path:
     return result
 
 
+def _ensure_control_dir(destination: Path) -> None:
+    """Create <destination>/.campus-sync if needed and keep it hidden on Windows."""
+    control_dir = destination / CONTROL_DIR_NAME
+    control_dir.mkdir(parents=True, exist_ok=True)
+    downloader.mark_hidden(control_dir)
+
+
 def take_over_ownership(destination: Path, machine_id: str) -> None:
     """Make this machine the owner of the destination ('take over', D2).
 
     Raises: OSError if owner.json cannot be written.
     """
     path = _owner_path(destination)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_control_dir(destination)
     data = {"machine_id": machine_id, "hostname": socket.gethostname()}
     with path.open("w", encoding="utf-8") as owner_file:
         json.dump(data, owner_file)
@@ -161,7 +168,7 @@ class SyncLock:
 
         Raises: SyncLockedError if it already exists.
         """
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        _ensure_control_dir(self._path.parent.parent)
         try:
             with self._path.open("x", encoding="ascii") as lock_file:
                 lock_file.write(str(os.getpid()))
@@ -439,5 +446,6 @@ class Syncer:
                 stop = self._summary.invalid_token or self._cancelled()
                 index = index + 1
             self._summary.cancelled = self._cancelled()
+            downloader.remove_empty_temp_dir(self._destination)
         result = self._summary
         return result
