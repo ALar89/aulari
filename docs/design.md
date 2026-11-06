@@ -13,7 +13,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
 | D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
 | D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
-| D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. Pendiente de elegir nombre (se decidirá más adelante, antes de la Fase 5). |
+| D5 | Nombre del proyecto | "Moodle" es marca registrada. **Revisado el 2026-11-06:** la política de marcas de Moodle (moodle.com/trademarks) dice que no se puede usar "Moodle" en el nombre del software, sin distinguir "… for Moodle"; solo se permite describir la integración ("works with Moodle™"). Recomendado: nombre propio sin "Moodle" y la integración en la descripción; nunca el logotipo de Moodle ni de la UAB. Pendiente de elegir nombre antes de la Fase 5. |
 
 ## 2. Resumen
 
