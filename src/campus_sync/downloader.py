@@ -160,25 +160,36 @@ def _move_exclusive(source: Path, target: Path) -> None:
 
 
 def download_atomic(
-    client: MoodleClient, item: SyncItem, destination: Path, target: Path
-) -> tuple[int, str]:
-    """Download an item to target through a temporary file; return (size, SHA-256).
+    client: MoodleClient,
+    item: SyncItem,
+    destination: Path,
+    target: Path,
+    skip_if_sha256: str = "",
+) -> tuple[int, str, bool]:
+    """Download an item to target through a temporary file.
 
-    The temporary file is always removed, also on errors.
+    Returns (size, SHA-256, moved). If the content's SHA-256 equals
+    skip_if_sha256 (same content as the previous version), the file is not
+    moved and moved is False (design.md section 6). The temporary file is
+    always removed, also on errors.
 
     Raises: DownloadError if the size differs from Moodle's; FileExistsError
     if target appeared meanwhile; plus everything MoodleClient.download raises.
     """
+    moved = False
     temp = _temp_path(destination)
     try:
         size, sha256 = client.download(item.url, temp)
         if item.filesize and size != item.filesize:
             raise DownloadError(f"Size mismatch for {target.name}: {size} != {item.filesize}")
-        _move_exclusive(temp, target)
+        if sha256 != skip_if_sha256:
+            _move_exclusive(temp, target)
+            moved = True
     finally:
         temp.unlink(missing_ok=True)
-    mark_downloaded_from_internet(target)
-    result = (size, sha256)
+    if moved:
+        mark_downloaded_from_internet(target)
+    result = (size, sha256, moved)
     return result
 
 
@@ -191,17 +202,26 @@ def write_url_shortcut(item: SyncItem, target: Path) -> str:
     Raises: ValueError for unsafe URLs (see organizer.url_shortcut_content);
     FileExistsError if target exists; OSError on write errors.
     """
-    safe_url = quote(item.url, safe=URL_SAFE_CHARS)
-    content = organizer.url_shortcut_content(safe_url)
+    content = url_shortcut_text(item)
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("x", encoding="ascii", newline="") as url_file:
         url_file.write(content)
     mark_downloaded_from_internet(target)
-    result = _sha256_text(content)
+    result = sha256_text(content)
     return result
 
 
-def _sha256_text(text: str) -> str:
+def url_shortcut_text(item: SyncItem) -> str:
+    """Return the exact .url text for a link item (non-ASCII percent-encoded).
+
+    Raises: ValueError for unsafe URLs (see organizer.url_shortcut_content).
+    """
+    safe_url = quote(item.url, safe=URL_SAFE_CHARS)
+    result = organizer.url_shortcut_content(safe_url)
+    return result
+
+
+def sha256_text(text: str) -> str:
     """Return the SHA-256 hex digest of an ASCII text."""
     result = hashlib.sha256(text.encode("ascii")).hexdigest()
     return result

@@ -132,11 +132,22 @@ class AtomicDownloadTests(FolderTestCase):
     def test_successful_download(self) -> None:
         """The file reaches its target and the temporary folder is left empty."""
         target = self.destination / "SO" / "01" / "a.pdf"
-        size, sha256 = downloader.download_atomic(
+        size, sha256, moved = downloader.download_atomic(
             FakeClient(b"hello"), make_item(), self.destination, target
         )
         self.assertEqual(target.read_bytes(), b"hello")
-        self.assertEqual((size, sha256), (5, hashlib.sha256(b"hello").hexdigest()))
+        self.assertEqual((size, sha256, moved), (5, hashlib.sha256(b"hello").hexdigest(), True))
+        self.assertEqual(self.temp_files(), [])
+
+    def test_same_content_is_not_moved(self) -> None:
+        """If the SHA-256 equals the previous version, nothing is written (design §6)."""
+        target = self.destination / "a (2026-11-06).pdf"
+        previous = hashlib.sha256(b"hello").hexdigest()
+        result = downloader.download_atomic(
+            FakeClient(b"hello"), make_item(), self.destination, target, skip_if_sha256=previous
+        )
+        self.assertEqual(result, (5, previous, False))
+        self.assertFalse(target.exists())
         self.assertEqual(self.temp_files(), [])
 
     def test_size_mismatch(self) -> None:
