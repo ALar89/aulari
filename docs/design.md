@@ -10,9 +10,9 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 |---|---|---|
 | D1 | Método de inicio de sesión | **ACEPTADA (2026-11-06): flujo de navegador** (`launch.php`, §4). El QR solo funciona si el cliente se hace pasar por la app oficial (comprobación de User-Agent `MoodleMobile`), lo que choca con la normativa TIC de la UAB. Se confirma en la Fase 1. |
 | D2 | Varios PCs con la misma carpeta sincronizada | **Un único equipo propietario en la v1** (§6). Dos registros independientes sobre una carpeta compartida generan duplicados y copias en conflicto. |
-| D3 | Calendario | **Usar la exportación iCal nativa de Moodle** si el sitio la permite; exportador propio solo como respaldo (§8). Ahorra una fase entera y los UID ya son estables. |
+| D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
 | D4 | Alias de asignatura | Conservar conectores "i"/"y" en minúscula (`CiOE`, `SDiLDH`) o ignorarlos (`COE`). Recomendado: conservarlos en minúscula. |
-| D6 | Curso académico de la carpeta (RF6) | Nueva tras la Fase 1 (§10): `startdate` no es fiable en e-aules. **Tomarlo del sitio** (la ruta `2026-27` de `wwwroot`), que ya es un sitio por curso; usar `startdate` solo como respaldo en otros Moodle. |
+| D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
 | D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. |
 
 ## 2. Resumen
@@ -83,16 +83,15 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 7. API de Moodle
 
-- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_enrolled_courses_by_timeline_classification`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`, `core_calendar_get_calendar_export_token`.
+- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_enrolled_courses_by_timeline_classification`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`.
 - **Contenido visible:** `contents` solo llega si `uservisible`. Los `introattachments` pueden no aparecer fuera de plazo si el profesor lo configura así.
 - **Descarga:** `fileurl` por `webservice/pluginfile.php`, añadiendo el token.
-- **Calendario propio (respaldo de D3):** `core_calendar_get_calendar_events` con **todos los `courseids` seleccionados** y un rango `timestart`/`timeend`. Si no se pasan cursos, no devuelve los eventos de curso.
+- **Calendario (D3):** `core_calendar_get_calendar_events` con **todos los `courseids` seleccionados** y un rango `timestart`/`timeend`. Si no se pasan cursos, no devuelve los eventos de curso.
 - Comprobar en la Fase 1 si la URL de e-aules cambia por curso académico; en ese caso, el sitio se guarda por curso.
 
 ## 8. Calendario
 
-- **Opción preferida (D3):** exportación iCal nativa de Moodle. El token de exportación es un secreto y se trata como el token principal.
-- **Respaldo propio:** `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
+- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
 - **Limitación documentada:** importar no es sincronizar. Según el calendario, reimportar puede duplicar eventos, y los eventos borrados en Moodle no desaparecen. Hay que comprobar el comportamiento de Proton Calendar.
 
 ## 9. Requisitos no funcionales
@@ -135,12 +134,12 @@ Cursos y contenidos (`poc/explore_api.py`, 2026-11-06):
 - `core_course_get_contents` (una asignatura): 6 secciones, 49 módulos (`resource`, `folder`, `assign`, `forum`, `label`, `page`, `groupselect`), 12 con `uservisible = false`, 27 archivos (45 MB). **Todos los `fileurl` usan `webservice/pluginfile.php`**, como espera §7. En esta asignatura no hay módulos `url`.
 
 Calendario (D3):
-- `core_calendar_get_calendar_export_token` funciona: token de 40 caracteres. Falta comprobar que la URL de exportación (`calendar/export_execute.php`) devuelve un `.ics` válido.
+- `core_calendar_get_calendar_export_token` funciona: token de 40 caracteres. No se usará: D3 se decidió por el exportador propio.
 
 Sitio por curso académico:
 - `https://e-aules.uab.cat/2025-26` sigue activo con la misma configuración (`typeoflogin` 2, CAS). Cada curso es un sitio distinto, con su propio token. No se ha comprobado qué cursos tiene el usuario en el sitio anterior.
 
-Pendiente: probar la URL de exportación iCal y los `introattachments` (`mod_assign_get_assignments`).
+Pendiente: probar `core_calendar_get_calendar_events` con los `courseids` de las asignaturas y los `introattachments` (`mod_assign_get_assignments`).
 
 ## 11. Legal y distribución
 
@@ -157,7 +156,7 @@ Pendiente: probar la URL de exportación iCal y los `introattachments` (`mod_ass
 |---|---|
 | El flujo de navegador no está habilitado en e-aules | Consultar `typeoflogin` en la Fase 1; si no hay vía legítima, el proyecto se replantea |
 | La URL de e-aules cambia cada curso | Guardar el sitio por curso académico; nuevo inicio de sesión al cambiar de curso |
-| Proton Calendar duplica eventos al reimportar | Exportación nativa con suscripción, o borrar e importar |
+| Proton Calendar duplica eventos al reimportar | UID estables; si aun así duplica, documentar "borrar el calendario e importar" |
 | Cambios en Moodle rompen la app | Pruebas con respuestas grabadas; código abierto |
 | Antivirus o SmartScreen bloquean el ejecutable | `--onedir`, compilación en CI, SignPath |
 
