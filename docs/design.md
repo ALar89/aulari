@@ -163,7 +163,8 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 
 - Sin las DevTools, el navegador no muestra la redirección `moodlemobile://token=…`: Windows no tiene programa para ese esquema y el navegador no hace nada. Pedir al usuario que la copie no es viable sin F12.
 - `launch.php` con `urlscheme=campussync` redirige igualmente a **`moodlemobile://`**: e-aules **fuerza el esquema** (`tool_mobile_forcedurlscheme`). Un esquema propio no sirve.
-- Decisión del usuario: login lo más automático posible → registrar `moodlemobile://` para el usuario actual (plan pendiente de aprobar).
+- **Decidido e implementado (2026-11-06):** al pulsar «Abrir navegador» la app registra `moodlemobile://` en `HKCU\Software\Classes` (sin administrador), guarda y luego restaura cualquier manejador anterior, y abre un socket local (`127.0.0.1`, puerto aleatorio, clave de un solo uso en `login_handoff.json`, nunca el token). Windows lanza `--login-callback <url>`, que pasa la URL a la ventana y termina. Al acabar, fallar, agotar 10 minutos o cerrar, se quita el registro. Queda una opción manual (F12) como respaldo.
+- **Riesgo aceptado:** el token viaja en la línea de órdenes del proceso de callback, visible para programas del mismo usuario; esos programas ya podrían leer el keyring (§9).
 
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 

@@ -4,6 +4,7 @@ Start with:  python -m campus_sync
 """
 
 import json
+import logging
 import os
 import tkinter as tk
 from collections.abc import Callable
@@ -15,6 +16,7 @@ import keyring.errors
 from campus_sync.app import CampusApp
 from campus_sync.log_filter import configure_logging
 from campus_sync.texts import text
+from campus_sync.ui import url_handler
 from campus_sync.ui.login_frame import LoginFrame
 from campus_sync.ui.messages import error_message
 from campus_sync.ui.worker import Worker, log_thread_exceptions
@@ -63,6 +65,7 @@ class MainWindow:
         self._app = app
         self._worker = Worker(root)
         self._frame = None
+        self._remove_leftover_handler()
         logged_in = False
         try:
             logged_in = app.is_logged_in()
@@ -72,6 +75,14 @@ class MainWindow:
             self.show_home()
         else:
             self.show_login()
+
+    def _remove_leftover_handler(self) -> None:
+        """Remove a moodlemobile:// registration left by a closed or crashed login."""
+        try:
+            url_handler.unregister(self._app.app_dir)
+        except OSError:
+            # Not Windows, or the registry is not writable: nothing to clean.
+            logging.getLogger(__name__).debug("No URL handler cleanup possible")
 
     def _show(self, frame: ttk.Frame) -> None:
         """Replace the current screen with frame."""

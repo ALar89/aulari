@@ -2,7 +2,7 @@
   "app_title": "Campus Sync",
   "first_run_notice": "El material del campus es para tu uso personal como estudiante matriculado. No lo compartas ni lo publiques: puede tener derechos de autor.",
   "login_title": "Iniciar sesión",
-  "login_steps": "1. Pulsa «Abrir navegador» e inicia sesión en el campus como siempre.\n2. Al terminar, el navegador intentará abrir una dirección que empieza por «moodlemobile://» y fallará: es normal.\n3. Copia esa dirección y pégala aquí. No la compartas con nadie.",
+  "login_steps": "1. Pulsa «Abrir navegador» e inicia sesión en el campus como siempre.\n2. Cuando el navegador pregunte si quieres abrir Campus Sync, acepta.\n3. Esta ventana continuará sola.",
   "login_open_browser": "Abrir navegador",
   "login_paste_label": "Dirección moodlemobile://",
   "login_button": "Entrar",
@@ -43,5 +43,11 @@
   "error_moodle": "El campus ha respondido con un error: {error}",
   "error_unexpected": "Ha ocurrido un error inesperado. Los detalles están en el registro de la aplicación.",
   "error_config_corrupt": "El archivo de configuración está dañado. Bórralo o renómbralo (está en %LOCALAPPDATA%\\campus-sync\\config.json) y vuelve a abrir la aplicación.",
-  "error_keyring": "No se ha podido acceder al almacén de credenciales de Windows."
+  "error_keyring": "No se ha podido acceder al almacén de credenciales de Windows.",
+  "login_waiting": "Esperando al navegador… Inicia sesión y acepta «Abrir Campus Sync» cuando te lo pregunte.",
+  "login_timeout": "Se ha dejado de esperar al navegador. Pulsa «Abrir navegador» para volver a intentarlo.",
+  "login_auto_unavailable": "El inicio de sesión automático no está disponible en este equipo. Usa la opción manual.",
+  "login_manual_toggle": "Introducir la dirección a mano",
+  "login_manual_steps": "Solo si la opción automática no funciona: en el navegador, abre las herramientas de desarrollo (F12) > Red > «Conservar registro» antes de pulsar «Abrir navegador». Al terminar, en la petición «launch.php», copia el valor de la cabecera «Location» (empieza por moodlemobile://) y pégalo aquí.",
+  "callback_no_app": "Abre Campus Sync, pulsa «Abrir navegador» y vuelve a iniciar sesión."
 }
