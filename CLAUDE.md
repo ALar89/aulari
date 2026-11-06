@@ -80,7 +80,7 @@ def read_config(path: Path) -> dict:
 
 ## 5. Entorno y comandos (Windows, PowerShell)
 
-- Python 3.12. Entorno: `py -3.12 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
+- Python 3.14. Entorno: `py -3.14 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
 - Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `ruff`. **Cualquier otra se pide antes de instalarla.**
 - Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
 - Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
