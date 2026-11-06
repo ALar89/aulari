@@ -26,7 +26,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | ID | Requisito |
 |---|---|
 | RF1 | URL del campus configurable, UAB por defecto. Si el sitio no permite el acceso, mensaje claro. |
-| RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica cómo revocarlo en el perfil de Moodle. |
+| RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica que el token sigue siendo válido hasta que caduque: en e-aules no hay forma de revocarlo desde el perfil (ver §10). |
 | RF3 | Selección de asignaturas con casillas; se recuerda la última selección. Por defecto, cursos en curso (`core_course_get_enrolled_courses_by_timeline_classification`, `inprogress`). Los cursos nuevos se proponen, no se descargan sin confirmar. |
 | RF4 | Alias de carpeta por asignatura (§5), editable. Cambiarlo después mueve la carpeta y actualiza el registro en una sola transacción. |
 | RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
@@ -45,7 +45,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - **QR** (`tool_mobile_get_tokens_for_qr_login`): exige User-Agent de la app oficial, HTTPS, clave de 10 minutos y, por defecto, la misma IP. Un cliente de terceros solo funciona falseando el User-Agent. **Descartado salvo que la Fase 1 demuestre lo contrario sin falsear nada.**
 - **Flujo de navegador** (`admin/tool/mobile/launch.php?service=moodle_mobile_app&passport=<aleatorio>&urlscheme=<esquema>`): el usuario inicia sesión en su navegador (SSO incluido) y Moodle redirige a `<esquema>://token=<base64>`. No comprueba el User-Agent. Requiere que `typeoflogin` sea navegador, navegador integrado o haya OAuth2. En Windows, o se registra el esquema de URL o el usuario copia la URL final y el script la lee con `getpass`.
 - **"Claves de seguridad"** del perfil: **no sirve**, desde Moodle 4.3 no muestra el valor del token.
-- El token caduca (por defecto 12 semanas). Ante `invalidtoken`, parar la sincronización limpiamente y pedir iniciar sesión de nuevo.
+- El token caduca (por defecto 12 semanas; no verificado en e-aules). En e-aules, Preferencias no tiene «Claves de seguridad»: el estudiante no puede revocar el token por su cuenta. Ante `invalidtoken`, parar la sincronización limpiamente y pedir iniciar sesión de nuevo.
 - Se descarta y nunca se guarda `privatetoken`.
 
 ## 5. Nombres y rutas
@@ -158,6 +158,10 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `poc/export_calendar.py` con los 10 cursos: 6 eventos (`SO` 3, `SDiLDH` 1, `EC` 2), ninguno con `DTEND`.
 - **Proton Calendar** importa el archivo en un calendario de prueba: hora local correcta (23:59), título `[SO] …` con acentos correctos y duración cero mostrada como «23:59 – 23:59».
 - **Reimportar el mismo archivo no duplica eventos** (UID estables): el riesgo de §12 queda resuelto para Proton. Falta ver qué pasa cuando un evento cambia (`SEQUENCE` 1) o desaparece de Moodle.
+
+### Fase 4: cerrar sesión (verificado el 2026-11-06)
+
+- En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
 
 ## 11. Legal y distribución
 

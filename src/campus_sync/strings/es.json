@@ -8,7 +8,7 @@
   "login_button": "Entrar",
   "login_ok": "Sesión iniciada.",
   "logout_button": "Cerrar sesión",
-  "logout_done": "Se ha borrado el token de este equipo. Sigue siendo válido en el campus hasta que lo revoques: en el campus, abre Preferencias > Claves de seguridad y restablece la clave del servicio de la app móvil.",
+  "logout_done": "Se ha borrado el token de este equipo. El campus no ofrece ninguna opción para revocarlo: sigue siendo válido hasta que caduque solo. Si crees que alguien lo ha copiado, avisa al soporte del campus.",
   "courses_title": "Asignaturas",
   "courses_new": "Hay asignaturas nuevas. Márcalas si quieres descargarlas.",
   "destination_label": "Carpeta de destino",
