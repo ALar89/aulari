@@ -232,6 +232,17 @@ class SecondSyncTests(SyncTestCase):
         states = {row["filename"]: row["state"] for row in self.registry.files_of_course(1, 1072)}
         self.assertEqual(states["guia.pdf"], STATE_MISSING)
 
+    def test_restore_missing_downloads_again(self) -> None:
+        """'Recover deleted' puts a deleted file back in its place (RF8)."""
+        (self.section_dir / "guia.pdf").unlink()
+        (self.section_dir / "Docs.url").unlink()
+        syncer = sync.Syncer(self.moodle, self.registry, self.target)
+        summary = syncer.run([COURSE], MACHINE, restore_missing=True)
+        self.assertEqual((summary.restored, summary.missing_locally), (2, 0))
+        self.assertEqual((self.section_dir / "guia.pdf").read_bytes(), b"guide v1")
+        self.assertTrue((self.section_dir / "Docs.url").exists())
+        self.assertEqual(self.run_sync().missing_locally, 0)
+
     def test_removed_in_moodle_is_kept_locally(self) -> None:
         """A file gone from Moodle is marked, never deleted."""
         self.moodle.modules = [

@@ -21,7 +21,7 @@
   "summary_new_versions": "Versiones nuevas: {count}",
   "summary_adopted": "Ya estaban en la carpeta: {count}",
   "summary_unchanged": "Sin cambios: {count}",
-  "summary_missing": "Borrados por ti en la carpeta: {count}",
+  "summary_missing": "Borrados por ti en la carpeta: {count} (pulsa «Recuperar borrados» para descargarlos otra vez)",
   "summary_removed": "Eliminados en el campus (se conservan): {count}",
   "summary_errors": "Errores: {count}",
   "summary_cancelled": "Sincronización cancelada.",
@@ -55,5 +55,7 @@
   "course_new_tag": "(nueva)",
   "sync_starting": "Preparando la sincronización…",
   "sync_cancelling": "Cancelando: se detendrá al terminar el archivo actual…",
-  "summary_more_errors": "  … y {count} errores más (detalles en el registro)."
+  "summary_more_errors": "  … y {count} errores más (detalles en el registro).",
+  "restore_button": "Recuperar borrados",
+  "summary_restored": "Recuperados (los habías borrado): {count}"
 }

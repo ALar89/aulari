@@ -83,7 +83,9 @@ class FakeApp:
         """Remember the selection."""
         self.selection = sorted(course_ids)
 
-    def run_sync(self, courses: list, progress: object, cancel: threading.Event) -> SyncResult:
+    def run_sync(
+        self, courses: list, progress: object, cancel: threading.Event, restore: bool = False
+    ) -> SyncResult:
         """Report one progress step and return a summary."""
         self.synced_with = courses
         progress(Progress("2026-27/SO", 0, 1, "Tema 1.pdf"))

@@ -83,6 +83,12 @@ class HomeFrame(ttk.Frame):
         buttons.pack(fill="x", pady=(PADDING, 0))
         self._sync_button = ttk.Button(buttons, text=text("sync_button"), command=self._sync)
         self._sync_button.pack(side="left")
+        self._restore_button = ttk.Button(
+            buttons,
+            text=text("restore_button"),
+            command=functools.partial(self._sync, restore_missing=True),
+        )
+        self._restore_button.pack(side="left", padx=(PADDING, 0))
         self._cancel_button = ttk.Button(
             buttons, text=text("cancel_button"), command=self._cancel_sync, state="disabled"
         )
@@ -97,6 +103,7 @@ class HomeFrame(ttk.Frame):
         """Enable or disable the controls while a background task runs."""
         state = "disabled" if busy else "normal"
         self._sync_button.configure(state=state)
+        self._restore_button.configure(state=state)
         self._choose_button.configure(state=state)
         self._logout_button.configure(state=state)
         self._cancel_button.configure(state="normal" if syncing else "disabled")
@@ -150,14 +157,17 @@ class HomeFrame(ttk.Frame):
 
     # --- sync ----------------------------------------------------------
 
-    def _sync(self) -> None:
-        """Start a sync of the selected courses in the background."""
+    def _sync(self, restore_missing: bool = False) -> None:
+        """Start a sync of the selected courses in the background.
+
+        restore_missing also downloads again the files deleted locally (RF8).
+        """
         self._cancel = threading.Event()
         self._progress.configure(value=0, maximum=1)
         self._status.set(text("sync_starting"))
         self._set_busy(True, syncing=True)
         task = functools.partial(
-            self._app.run_sync, self._choices, self._worker.report, self._cancel
+            self._app.run_sync, self._choices, self._worker.report, self._cancel, restore_missing
         )
         self._worker.start(task, self._sync_done, self._sync_failed, self._sync_progress)
 

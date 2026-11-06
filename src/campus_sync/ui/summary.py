@@ -42,6 +42,8 @@ def summary_text(result: SyncResult) -> str:
     if summary.adopted:
         lines.append(text("summary_adopted", count=summary.adopted))
     lines.append(text("summary_unchanged", count=summary.unchanged))
+    if summary.restored:
+        lines.append(text("summary_restored", count=summary.restored))
     if summary.missing_locally:
         lines.append(text("summary_missing", count=summary.missing_locally))
     if summary.removed_in_moodle:

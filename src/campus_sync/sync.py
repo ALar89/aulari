@@ -97,6 +97,7 @@ class SyncSummary:
     adopted: int = 0
     unchanged: int = 0
     missing_locally: int = 0
+    restored: int = 0
     removed_in_moodle: int = 0
     errors: list[str] = field(default_factory=list)
     cancelled: bool = False
@@ -201,6 +202,7 @@ class Syncer:
         self._cancel = cancel
         self._summary = SyncSummary()
         self._site_id = 0
+        self._restore_missing = False
 
     # --- helpers -------------------------------------------------------
 
@@ -344,19 +346,37 @@ class Syncer:
     def _handle_unchanged(self, item: SyncItem) -> None:
         """Update last_checked and whether the local copy still exists.
 
-        A file the user moved or deleted is marked missing, never re-downloaded
-        automatically (that is RF8, 'download again').
+        A file the user moved or deleted is marked missing and only downloaded
+        again when the run was started with restore_missing (RF8).
 
-        Raises: ValueError if the stored path escapes the destination.
+        Raises: ValueError if the stored path escapes the destination;
+        OSError, DownloadError, MoodleError when restoring.
         """
         latest = self._registry.latest_version(self._site_id, item.key)
         self._registry.mark_seen(self._site_id, item.key)
-        if self._stored_path(latest["relative_path"]).exists():
+        path = self._stored_path(latest["relative_path"])
+        if path.exists():
             self._registry.set_state(self._site_id, item.key, STATE_PRESENT)
+            self._summary.unchanged = self._summary.unchanged + 1
+        elif self._restore_missing:
+            self._restore(item, path)
+            self._registry.set_state(self._site_id, item.key, STATE_PRESENT)
+            self._summary.restored = self._summary.restored + 1
         else:
             self._registry.set_state(self._site_id, item.key, STATE_MISSING)
             self._summary.missing_locally = self._summary.missing_locally + 1
-        self._summary.unchanged = self._summary.unchanged + 1
+            self._summary.unchanged = self._summary.unchanged + 1
+
+    def _restore(self, item: SyncItem, path: Path) -> None:
+        """Download again a file the user deleted, to its registered path (RF8).
+
+        Raises: OSError, DownloadError, MoodleError.
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if item.kind == KIND_URL:
+            downloader.write_url_shortcut(item, path)
+        else:
+            downloader.download_atomic(self._client, item, self._destination, path)
 
     def _handle_new(self, course_id: int, relative_dir: PurePosixPath, item: SyncItem) -> None:
         """Write a new item: link, adopted existing file, or fresh download.
@@ -417,13 +437,19 @@ class Syncer:
 
     # --- run -----------------------------------------------------------
 
-    def run(self, courses: list[Course], machine_id: str) -> SyncSummary:
+    def run(
+        self, courses: list[Course], machine_id: str, restore_missing: bool = False
+    ) -> SyncSummary:
         """Synchronize the courses and return the summary.
+
+        With restore_missing, files the user deleted locally are downloaded
+        again to their registered place ('download again', RF8).
 
         Raises: SyncLockedError if another sync holds the lock; NotOwnerError
         if another machine owns the destination; OSError on lock or owner
         file errors.
         """
+        self._restore_missing = restore_missing
         with SyncLock(self._destination):
             check_owner(self._destination, machine_id)
             downloader.clean_temp_dir(self._destination)

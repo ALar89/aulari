@@ -239,8 +239,11 @@ class CampusApp:
         courses: list[CourseChoice],
         progress: Callable[[Progress], None] | None = None,
         cancel: threading.Event | None = None,
+        restore_missing: bool = False,
     ) -> SyncResult:
         """Sync the selected courses, then export the calendar (RF9, RF10).
+
+        restore_missing downloads again the files deleted locally (RF8).
 
         Raises: AppError; SyncLockedError; NotOwnerError (offer take_over());
         OSError; RegistryError.
@@ -256,7 +259,8 @@ class CampusApp:
             self._client_factory(target.site_url, self._token()) as client,
             Registry(self.app_dir / REGISTRY_NAME) as registry,
         ):
-            summary = Syncer(client, registry, target, progress, cancel).run(chosen, machine_id)
+            syncer = Syncer(client, registry, target, progress, cancel)
+            summary = syncer.run(chosen, machine_id, restore_missing)
             result = SyncResult(summary)
             if not summary.invalid_token and not summary.cancelled:
                 self._export_calendar(client, registry, target, result)
