@@ -28,10 +28,7 @@ import keyring.errors
 import requests
 from moodle_ws import KEYRING_SERVICE, MoodleError, call_function, keyring_username
 
-# Temporary until the package is installable: make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
-from campus_sync.log_filter import REDACTED, configure_logging, redact  # noqa: E402
+from campus_sync.log_filter import REDACTED, configure_logging, redact
 
 EXPECTED_ARGS = 3  # script name + site URL + user id
 # Keys whose values are secrets and must never reach a recording.

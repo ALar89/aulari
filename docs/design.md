@@ -29,7 +29,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica cómo revocarlo en el perfil de Moodle. |
 | RF3 | Selección de asignaturas con casillas; se recuerda la última selección. Por defecto, cursos en curso (`core_course_get_enrolled_courses_by_timeline_classification`, `inprogress`). Los cursos nuevos se proponen, no se descargan sin confirmar. |
 | RF4 | Alias de carpeta por asignatura (§5), editable. Cambiarlo después mueve la carpeta y actualiza el registro en una sola transacción. |
-| RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
+| RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
 | RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. |
 | RF7 | Versiones nuevas como `Name (AAAA-MM-DD).ext`, fecha en hora de Europa/Madrid; si coincide, `AAAA-MM-DD HHMM` y después ` (2)`. Nunca se sobrescribe. |
 | RF8 | "Volver a descargar" a nivel de archivo, sección o curso. |
@@ -144,6 +144,12 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `mod_assign_get_assignments` (una asignatura): 5 tareas, 4 con `introattachments`, 8 archivos (8,6 MB), todos por `webservice/pluginfile.php`. No hay `introfiles`.
 - `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos. Los 4 avisos son `item: module`, `warningcode: 1`, "No access rights in module context": son las 4 tareas a las que el usuario no tiene acceso (probablemente las ocultas o restringidas, `uservisible = false`; no se ha cruzado con la grabación de contenidos). **Consecuencia:** un aviso de este tipo es normal, no un error; la sincronización lo registra y sigue (RNF de robustez, §9).
 
+### Fase 2: descarga de archivos (verificado el 2026-11-06)
+
+- `webservice/pluginfile.php` **acepta el token en el cuerpo POST** (`token=`), sin ponerlo en la URL: `poc/download_one.py` descargó un archivo de 640 bytes con el mismo tamaño que declara Moodle.
+- Los módulos `page` listan un `index.html` generado con `filesize = 0`: no son comparables por tamaño y quedan fuera de la v1 (§14). La sincronización debe ignorarlos.
+- **Sincronización real de una asignatura** (`poc/sync_one_course.py`, núcleo completo): primera ejecución, 33 archivos nuevos y 0 errores; segunda ejecución, 33 sin cambios y 0 descargas. Cuadrado con las grabaciones: 25 archivos de `resource`/`folder` + 8 adjuntos de tareas = 33, sin claves duplicadas. Los 2 que faltan para 35 son del único módulo `page`: su `index.html` (`filesize = 0`) y **un PDF de 0,9 MB incrustado en la página**, que hoy se ignora porque los `page` quedan fuera de la v1. **Decidido (2026-11-06):** se descargan los archivos incrustados en páginas, en una subcarpeta con el nombre de la página, sin el `index.html`. Verificado: la tercera ejecución descargó 1 archivo nuevo (el PDF) y dejó 33 sin cambios; total 34 = 35 menos el `index.html`.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
@@ -173,4 +179,4 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 
 ## 14. Fuera de alcance v1
 
-Páginas HTML y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
+El HTML de las páginas (sí sus archivos incrustados) y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.

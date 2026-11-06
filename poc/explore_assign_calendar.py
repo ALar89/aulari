@@ -17,17 +17,13 @@ import logging
 import sys
 from collections import Counter
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 import keyring
 import keyring.errors
 from explore_api import ask_course_id, format_timestamp, run_step, save_recording
 from moodle_ws import KEYRING_SERVICE, call_function, keyring_username
 
-# Temporary until the package is installable: make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
-from campus_sync.log_filter import configure_logging  # noqa: E402
+from campus_sync.log_filter import configure_logging
 
 EXPECTED_ARGS = 3  # script name + site URL + user id
 DAYS_BEFORE = 30

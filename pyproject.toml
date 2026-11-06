@@ -1,9 +1,16 @@
+[build-system]
+# Build backend only (pip downloads it for the install); not a runtime dependency.
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "campus-sync"
 version = "0.1.0"
 description = "Download and organize course material from a Moodle site"
 requires-python = ">=3.14"
 license = "MIT"
+# Exact pinned versions live in requirements.txt.
+dependencies = ["requests", "keyring", "tzdata"]
 
 [tool.ruff]
 line-length = 100
@@ -12,4 +19,4 @@ target-version = "py314"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET", "PL", "C4"]
 # Rules that contradict the project's structured style (CLAUDE.md section 3).
-ignore = ["RET501", "RET502", "RET503", "RET504", "RET505", "SIM110", "PLR1714", "C4"]
+ignore = ["RET501", "RET502", "RET503", "RET504", "RET505", "SIM108", "SIM110", "PLR1714", "C4"]

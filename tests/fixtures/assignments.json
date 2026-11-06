@@ -1,0 +1,138 @@
+{
+  "courses": [
+    {
+      "id": 101,
+      "assignments": [
+        {
+          "id": 7001,
+          "cmid": 5025,
+          "name": "assign 1",
+          "introattachments": [
+            {
+              "filesize": 105458,
+              "timemodified": 1785403217,
+              "mimetype": "application/pdf",
+              "filename": "file_28.pdf",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9022/mod_assign/introattachment/0/file_28.pdf?forcedownload=1"
+            }
+          ],
+          "introfiles": []
+        },
+        {
+          "id": 7002,
+          "cmid": 5028,
+          "name": "assign 2",
+          "introattachments": [
+            {
+              "filesize": 236826,
+              "timemodified": 1787153157,
+              "mimetype": "application/pdf",
+              "filename": "file_29.pdf",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9023/mod_assign/introattachment/0/file_29.pdf?forcedownload=1"
+            }
+          ],
+          "introfiles": []
+        },
+        {
+          "id": 7003,
+          "cmid": 5046,
+          "name": "assign 3",
+          "introattachments": [
+            {
+              "filesize": 4183488,
+              "timemodified": 1785403220,
+              "mimetype": "application/pdf",
+              "filename": "file_30.pdf",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_30.pdf?forcedownload=1"
+            },
+            {
+              "filesize": 561,
+              "timemodified": 1785403220,
+              "mimetype": "text/plain",
+              "filename": "file_31.txt",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_31.txt?forcedownload=1"
+            },
+            {
+              "filesize": 400,
+              "timemodified": 1785403220,
+              "mimetype": "application/x-sh",
+              "filename": "file_32.sh",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_32.sh?forcedownload=1"
+            },
+            {
+              "filesize": 211,
+              "timemodified": 1785403220,
+              "mimetype": "application/x-sh",
+              "filename": "file_33.sh",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9024/mod_assign/introattachment/0/file_33.sh?forcedownload=1"
+            }
+          ],
+          "introfiles": []
+        },
+        {
+          "id": 7004,
+          "cmid": 5047,
+          "name": "assign 4",
+          "introattachments": [
+            {
+              "filesize": 2147,
+              "timemodified": 1785403220,
+              "mimetype": "application/zip",
+              "filename": "file_34.zip",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9025/mod_assign/introattachment/0/file_34.zip?forcedownload=1"
+            },
+            {
+              "filesize": 4117932,
+              "timemodified": 1785403220,
+              "mimetype": "application/pdf",
+              "filename": "file_35.pdf",
+              "filepath": "/",
+              "fileurl": "https://moodle.example.test/2026-27/webservice/pluginfile.php/9025/mod_assign/introattachment/0/file_35.pdf?forcedownload=1"
+            }
+          ],
+          "introfiles": []
+        },
+        {
+          "id": 7005,
+          "cmid": 5026,
+          "name": "assign 5",
+          "introattachments": [],
+          "introfiles": []
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "item": "module",
+      "warningcode": "1",
+      "message": "No access rights in module context",
+      "itemid": 5030
+    },
+    {
+      "item": "module",
+      "warningcode": "1",
+      "message": "No access rights in module context",
+      "itemid": 5032
+    },
+    {
+      "item": "module",
+      "warningcode": "1",
+      "message": "No access rights in module context",
+      "itemid": 5048
+    },
+    {
+      "item": "module",
+      "warningcode": "1",
+      "message": "No access rights in module context",
+      "itemid": 5049
+    }
+  ]
+}

@@ -2,14 +2,9 @@
 
 import io
 import logging
-import sys
 import unittest
-from pathlib import Path
 
-# Temporary until the package is installable: make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
-from campus_sync.log_filter import RedactingFilter, redact  # noqa: E402
+from campus_sync.log_filter import RedactingFilter, redact
 
 SECRET = "abc123SECRETxyz"
 

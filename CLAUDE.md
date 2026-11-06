@@ -7,7 +7,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 ## 1. Estado
 
 - **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
-- Siguiente paso: **Fase 2**, núcleo sin interfaz (`docs/design.md` §13).
+- **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/campus_sync/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
+- Siguiente paso: **Fase 3**, calendario con exportador propio (D3, `docs/design.md` §8).
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
@@ -80,8 +81,8 @@ def read_config(path: Path) -> dict:
 
 ## 5. Entorno y comandos (Windows, PowerShell)
 
-- Python 3.14. Entorno: `py -3.14 -m venv .venv` y `.venv\Scripts\Activate.ps1`.
-- Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `ruff`. **Cualquier otra se pide antes de instalarla.**
+- Python 3.14. Entorno: `py -3.14 -m venv .venv`, `.venv\Scripts\Activate.ps1`, `pip install -r requirements-dev.txt` y `pip install -e .` (paquete editable: `campus_sync` se importa sin tocar `sys.path`).
+- Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `tzdata` (zonas horarias en Windows), `ruff`, y `setuptools` solo como backend de compilación (fijado en `pyproject.toml`). **Cualquier otra se pide antes de instalarla.**
 - Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
 - Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
 - Comandos de PowerShell: rutas con `\`, `Remove-Item` en lugar de `rm -rf`.
