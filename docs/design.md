@@ -173,6 +173,12 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `core_course_get_enrolled_courses_by_timeline_classification` (`inprogress`) devolvió los **10** cursos como en curso, incluidos los 4 espacios sin fecha de fin (información, coordinación). No sirve para preseleccionar: se elimina su uso y la primera lista sale sin marcar (RF3).
 - Sincronización de una asignatura desde la ventana: 34 nuevos, 0 errores, calendario con 3 eventos en `<destino>/2026-27/calendari.ics`. La carpeta de una sección sin archivos no se crea.
 
+### Fase 4: funciones extra (verificado el 2026-11-06)
+
+- Aviso de uso personal en la primera ejecución (RF12): se muestra una vez.
+- Cambio de alias (RF4): `SO` → `SO-Renombrada` mueve la carpeta y la siguiente sincronización la encuentra.
+- «Recuperar borrados» (RF8): con un archivo borrado a mano, resumen con 1 recuperado y 33 sin cambios.
+
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 
 - En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
