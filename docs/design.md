@@ -12,6 +12,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D2 | Varios PCs con la misma carpeta sincronizada | **Un único equipo propietario en la v1** (§6). Dos registros independientes sobre una carpeta compartida generan duplicados y copias en conflicto. |
 | D3 | Calendario | **Usar la exportación iCal nativa de Moodle** si el sitio la permite; exportador propio solo como respaldo (§8). Ahorra una fase entera y los UID ya son estables. |
 | D4 | Alias de asignatura | Conservar conectores "i"/"y" en minúscula (`CiOE`, `SDiLDH`) o ignorarlos (`COE`). Recomendado: conservarlos en minúscula. |
+| D6 | Curso académico de la carpeta (RF6) | Nueva tras la Fase 1 (§10): `startdate` no es fiable en e-aules. **Tomarlo del sitio** (la ruta `2026-27` de `wwwroot`), que ya es un sitio por curso; usar `startdate` solo como respaldo en otros Moodle. |
 | D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. |
 
 ## 2. Resumen
@@ -127,7 +128,19 @@ Flujo de navegador (`poc/browser_login.py`):
 - `core_webservice_get_site_info`: Moodle **4.5.10+** (Build 20260320), versión `2024100710.05`; coincide con la rama analizada.
 - Usuario del keyring: `<host><ruta>|<userid>` (p. ej. `e-aules.uab.cat/2026-27|<id>`) en lugar de `<host>|<userid>`, porque cada curso académico es un sitio distinto.
 
-Pendiente: cursos, contenidos, exportación de calendario (pasos 3 y 4 de la Fase 1).
+Cursos y contenidos (`poc/explore_api.py`, 2026-11-06):
+- `core_enrol_get_users_courses`: 10 cursos. 5 asignaturas del curso y 5 espacios que no son asignaturas (coordinación, información), con `enddate = 0`.
+- **`startdate` no sirve para deducir el curso académico**: en el sitio 2026-27 hay asignaturas con `startdate` 2026-07-20, 2026-08-31 e incluso 2023-07-11. Con la regla de §5 (corte el 1 de septiembre) irían a carpetas de cursos anteriores. Ver decisión D6.
+- `shortname` y `fullname` son iguales y llevan ruido: código `[MO86824]`, sufijos `(2026-27)` o `- Grau ... 26-27`. El generador de alias debe quitarlo.
+- `core_course_get_contents` (una asignatura): 6 secciones, 49 módulos (`resource`, `folder`, `assign`, `forum`, `label`, `page`, `groupselect`), 12 con `uservisible = false`, 27 archivos (45 MB). **Todos los `fileurl` usan `webservice/pluginfile.php`**, como espera §7. En esta asignatura no hay módulos `url`.
+
+Calendario (D3):
+- `core_calendar_get_calendar_export_token` funciona: token de 40 caracteres. Falta comprobar que la URL de exportación (`calendar/export_execute.php`) devuelve un `.ics` válido.
+
+Sitio por curso académico:
+- `https://e-aules.uab.cat/2025-26` sigue activo con la misma configuración (`typeoflogin` 2, CAS). Cada curso es un sitio distinto, con su propio token. No se ha comprobado qué cursos tiene el usuario en el sitio anterior.
+
+Pendiente: probar la URL de exportación iCal y los `introattachments` (`mod_assign_get_assignments`).
 
 ## 11. Legal y distribución
 
