@@ -17,6 +17,7 @@ import webbrowser
 from collections.abc import Callable
 from tkinter import ttk
 
+from campus_sync import auth
 from campus_sync.app import CampusApp
 from campus_sync.texts import text
 from campus_sync.ui import url_handler
@@ -184,6 +185,7 @@ class LoginFrame(ttk.Frame):
 
     def _check(self, redirect_url: str) -> None:
         """Check a redirect URL in the background."""
+        logger.info("Login redirect received: %s", auth.redirect_shape(redirect_url))
         self._set_busy(True)
         self._status.set(text("login_working"))
         task = functools.partial(self._app.finish_login, redirect_url, self._passport)
@@ -197,5 +199,6 @@ class LoginFrame(ttk.Frame):
 
     def _login_failed(self, error: Exception) -> None:
         """Main thread: show what went wrong and let the user try again."""
+        logger.warning("Login failed: %s: %s", type(error).__name__, error)
         self._set_busy(False)
         self._status.set(error_message(error))

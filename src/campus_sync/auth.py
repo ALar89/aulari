@@ -30,6 +30,7 @@ TOKEN_SEPARATOR = ":::"
 MIN_TOKEN_PARTS = 2
 PASSPORT_BYTES = 16
 _TOKEN_FORMAT = re.compile(r"[A-Za-z0-9]{16,128}")
+_BASE64_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
 
 
 def new_passport() -> str:
@@ -73,6 +74,30 @@ def _signature_matches(site_url: str, passport: str, signature: str) -> bool:
     """Return True if signature == md5(wwwroot + passport), as launch.php builds it."""
     expected = hashlib.md5((site_url + passport).encode("utf-8")).hexdigest()
     result = secrets.compare_digest(expected, signature)
+    return result
+
+
+def redirect_shape(url: str) -> str:
+    """Describe a redirect URL for diagnosis without revealing the token.
+
+    Shows the total length, the text before 'token=' and any character after
+    it that is not base64 (with its position from the end). Base64 characters,
+    which carry the token, are never shown.
+    """
+    position = url.find(TOKEN_MARKER)
+    prefix = url[: position + len(TOKEN_MARKER)] if position >= 0 else "(no 'token=')"
+    payload = url[position + len(TOKEN_MARKER) :] if position >= 0 else ""
+    odd = [
+        f"{char!r}@-{len(payload) - index}"
+        for index, char in enumerate(payload)
+        if char not in _BASE64_CHARS
+    ]
+    last = payload[-1:] if payload else ""
+    ending = last if last in {"/", "=", ""} else ("alnum" if last.isalnum() else "other")
+    result = (
+        f"length={len(url)} prefix={prefix!r} payload={len(payload)} "
+        f"non-base64={odd} last={ending!r} padding_ok={len(payload) % 4 == 0}"
+    )
     return result
 
 

@@ -201,5 +201,24 @@ class LoginTests(KeyringTestCase):
         self.assertEqual(self.memory.store, {})
 
 
+class RedirectShapeTests(unittest.TestCase):
+    """Tests for redirect_shape() (diagnosis without the token)."""
+
+    def test_shape_never_contains_the_token(self) -> None:
+        """Length and odd characters are shown, base64 content is not."""
+        url = make_redirect(SITE, PASSPORT, TOKEN, PRIVATE_TOKEN) + "/"
+        shape = auth.redirect_shape(url)
+        payload = url.split("token=")[1]
+        self.assertIn("prefix='moodlemobile://token='", shape)
+        self.assertIn("last='/'", shape)
+        self.assertNotIn(payload[:8], shape)
+        self.assertNotIn(TOKEN, shape)
+
+    def test_percent_encoding_is_visible(self) -> None:
+        """Characters like '%' after token= are listed with their position."""
+        shape = auth.redirect_shape("moodlemobile://token=abc%3D")
+        self.assertIn("'%'@-3", shape)
+
+
 if __name__ == "__main__":
     unittest.main()
