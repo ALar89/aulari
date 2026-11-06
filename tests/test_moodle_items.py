@@ -41,7 +41,10 @@ SECTIONS = [
                 "id": 3,
                 "modname": "page",
                 "name": "Pàgina",
-                "contents": [{"type": "file", "filename": "index.html", "filesize": 0}],
+                "contents": [
+                    {"type": "file", "filename": "index.html", "filepath": "/", "filesize": 0},
+                    file_content("apunts.pdf", "/", "mod_page"),
+                ],
             },
         ],
     },
@@ -143,7 +146,9 @@ class ContentsTests(unittest.TestCase):
 
     def test_only_supported_visible_items(self) -> None:
         """Resources, folder files and links; no page, label, forum or hidden module."""
-        self.assertEqual(sorted(self.by_name), ["Documentació oficial", "a.c", "b.c", "guia.pdf"])
+        self.assertEqual(
+            sorted(self.by_name), ["Documentació oficial", "a.c", "apunts.pdf", "b.c", "guia.pdf"]
+        )
 
     def test_resource_item(self) -> None:
         """A resource keeps section, key, size and has no subfolder."""
@@ -153,6 +158,13 @@ class ContentsTests(unittest.TestCase):
         self.assertEqual((item.key.cmid, item.key.filearea, item.key.filepath), (2, "content", "/"))
         self.assertEqual(item.subfolder, "")
         self.assertEqual(item.filesize, 1000)
+
+    def test_page_files_without_page_html(self) -> None:
+        """Files embedded in a page are kept, in a subfolder; its index.html is not."""
+        item = self.by_name["apunts.pdf"]
+        self.assertEqual(item.subfolder, "Pàgina")
+        self.assertEqual((item.key.cmid, item.key.filearea), (3, "content"))
+        self.assertNotIn("index.html", self.by_name)
 
     def test_folder_files_keep_filepath(self) -> None:
         """Folder files go into a subfolder named after the module and keep filepath."""

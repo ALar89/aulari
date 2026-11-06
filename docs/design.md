@@ -29,7 +29,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica cómo revocarlo en el perfil de Moodle. |
 | RF3 | Selección de asignaturas con casillas; se recuerda la última selección. Por defecto, cursos en curso (`core_course_get_enrolled_courses_by_timeline_classification`, `inprogress`). Los cursos nuevos se proponen, no se descargan sin confirmar. |
 | RF4 | Alias de carpeta por asignatura (§5), editable. Cambiarlo después mueve la carpeta y actualiza el registro en una sola transacción. |
-| RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
+| RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
 | RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. |
 | RF7 | Versiones nuevas como `Name (AAAA-MM-DD).ext`, fecha en hora de Europa/Madrid; si coincide, `AAAA-MM-DD HHMM` y después ` (2)`. Nunca se sobrescribe. |
 | RF8 | "Volver a descargar" a nivel de archivo, sección o curso. |
@@ -148,7 +148,7 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 
 - `webservice/pluginfile.php` **acepta el token en el cuerpo POST** (`token=`), sin ponerlo en la URL: `poc/download_one.py` descargó un archivo de 640 bytes con el mismo tamaño que declara Moodle.
 - Los módulos `page` listan un `index.html` generado con `filesize = 0`: no son comparables por tamaño y quedan fuera de la v1 (§14). La sincronización debe ignorarlos.
-- **Sincronización real de una asignatura** (`poc/sync_one_course.py`, núcleo completo): primera ejecución, 33 archivos nuevos y 0 errores; segunda ejecución, 33 sin cambios y 0 descargas. Cuadrado con las grabaciones: 25 archivos de `resource`/`folder` + 8 adjuntos de tareas = 33, sin claves duplicadas. Los 2 que faltan para 35 son del único módulo `page`: su `index.html` (`filesize = 0`) y **un PDF de 0,9 MB incrustado en la página**, que hoy se ignora porque los `page` quedan fuera de la v1. Decidir si se descargan los archivos incrustados en páginas (sin el `index.html`).
+- **Sincronización real de una asignatura** (`poc/sync_one_course.py`, núcleo completo): primera ejecución, 33 archivos nuevos y 0 errores; segunda ejecución, 33 sin cambios y 0 descargas. Cuadrado con las grabaciones: 25 archivos de `resource`/`folder` + 8 adjuntos de tareas = 33, sin claves duplicadas. Los 2 que faltan para 35 son del único módulo `page`: su `index.html` (`filesize = 0`) y **un PDF de 0,9 MB incrustado en la página**, que hoy se ignora porque los `page` quedan fuera de la v1. **Decidido (2026-11-06):** se descargan los archivos incrustados en páginas, en una subcarpeta con el nombre de la página, sin el `index.html`.
 
 ## 11. Legal y distribución
 
@@ -179,4 +179,4 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 
 ## 14. Fuera de alcance v1
 
-Páginas HTML y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
+El HTML de las páginas (sí sus archivos incrustados) y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.

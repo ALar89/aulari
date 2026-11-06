@@ -5,10 +5,12 @@ and mod_assign_get_assignments; output is a list of SyncItem.
 
 What is kept:
 - 'resource' and 'folder' files (folders keep their inner filepath);
+- files embedded in 'page' modules, without the page's own index.html;
 - 'url' modules (saved later as .url shortcuts);
 - assignment intro attachments ('introattachments').
-What is skipped: modules with uservisible = false, 'page', 'label' and any
-other module type, and embedded 'introfiles' (design.md sections 3 and 10).
+What is skipped: modules with uservisible = false, the HTML of pages,
+'label' and any other module type, and embedded 'introfiles'
+(design.md sections 3 and 10).
 """
 
 from dataclasses import dataclass
@@ -19,7 +21,11 @@ from campus_sync.registry import FileKey
 KIND_FILE = "file"
 KIND_URL = "url"
 URL_FILEAREA = "url"
-FILE_MODULES = {"resource", "folder"}
+FILE_MODULES = {"resource", "folder", "page"}
+# Modules whose files go into a subfolder named after the module.
+SUBFOLDER_MODULES = {"folder", "page"}
+PAGE_MODULE = "page"
+PAGE_HTML_NAME = "index.html"  # generated HTML of a page, out of scope
 URL_MODULE = "url"
 PLUGINFILE_MARKER = "pluginfile.php"
 MIN_PLUGINFILE_SEGMENTS = 3  # contextid / component / filearea
@@ -125,6 +131,16 @@ def _url_item(module: dict, content: dict, section: SectionInfo) -> SyncItem:
     return result
 
 
+def _is_page_html(modname: str | None, content: dict) -> bool:
+    """Return True for the generated index.html of a page (not downloaded)."""
+    result = (
+        modname == PAGE_MODULE
+        and content.get("filename") == PAGE_HTML_NAME
+        and content.get("filepath", "/") == "/"
+    )
+    return result
+
+
 def _module_items(module: dict, section: SectionInfo) -> list[SyncItem]:
     """Return the items of one module, or [] if it is hidden or not supported.
 
@@ -132,11 +148,10 @@ def _module_items(module: dict, section: SectionInfo) -> list[SyncItem]:
     """
     items = []
     modname = module.get("modname")
-    # Files of a 'folder' module go into a subfolder with the module name.
-    subfolder = str(module.get("name", "")) if modname == "folder" else ""
+    subfolder = str(module.get("name", "")) if modname in SUBFOLDER_MODULES else ""
     if module.get("uservisible", True):
         for content in module.get("contents", []):
-            is_file = content.get("type") == "file"
+            is_file = content.get("type") == "file" and not _is_page_html(modname, content)
             if modname in FILE_MODULES and is_file:
                 items.append(_file_item(int(module["id"]), content, section, subfolder))
             elif modname == URL_MODULE and content.get("type") == "url":
