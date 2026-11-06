@@ -6,8 +6,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 
 ## 1. Estado
 
-- Diseño cerrado **salvo lo que decida la prueba de concepto** (Fase 1).
-- Siguiente paso: **Fase 1** (sección 7).
+- **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
+- Siguiente paso: **Fase 2**, núcleo sin interfaz (`docs/design.md` §13).
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
