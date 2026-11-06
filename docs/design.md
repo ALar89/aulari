@@ -38,6 +38,20 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF11 | Primera ejecución con material ya descargado a mano: si el archivo de destino existe con el mismo tamaño, se adopta en lugar de duplicarlo. |
 | RF12 | Aviso en la primera ejecución: el material es de uso personal y no debe compartirse. |
 
+**Ampliación acordada el 2026-11-06** (antes de publicar; en este orden):
+
+| ID | Requisito |
+|---|---|
+| RF13 | Botón «Abrir carpeta» del destino en el Explorador (nunca abre archivos descargados). |
+| RF14 | Archivo `Novedades.txt` en `<destino>/<curso académico>/` con lo nuevo y actualizado de cada sincronización (sustituye a la lista en la ventana, que no cabía). |
+| RF15 | Próximas entregas y fechas en la ventana principal, a partir de los eventos del calendario. |
+| RF16 | Aviso de anuncios nuevos del foro de avisos (`news`) de cada asignatura: título y asignatura, sin guardar los foros. |
+| RF17 | Estado de las entregas propias de cada tarea (entregada o no, nota y comentarios del profesor). |
+| RF18 | Botón «Calificaciones» que abre una tabla con todas las asignaturas y su nota. |
+| RF19 | Varios cursos académicos (sitios) a la vez, según D6. |
+
+RF16–RF18 usan funciones de lectura nuevas (`mod_forum_*`, `mod_assign_get_submission_status`, `gradereport_*`): se comprueban antes en e-aules con un script de prueba. Descartados por ahora: guardar los foros completos. Más adelante: sincronización automática e idiomas catalán e inglés.
+
 ## 4. Autenticación
 
 Verificado en el código fuente de Moodle 4.5 (ver §10):
