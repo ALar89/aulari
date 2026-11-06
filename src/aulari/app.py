@@ -9,13 +9,13 @@ import logging
 import sqlite3
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 import requests
 
-from aulari import auth, calendar_export, news, organizer
+from aulari import auth, calendar_export, extras, news, organizer
 from aulari.calendar_export import CalendarRequest, export_calendar
 from aulari.config import Settings, load_settings, save_settings
 from aulari.moodle_client import MoodleClient, MoodleError
@@ -77,6 +77,8 @@ class SyncResult:
     calendar_events: int = 0
     calendar_error: str = ""
     news_path: Path | None = None  # Novedades.txt, if this sync changed anything (RF14)
+    announcements: list[extras.Announcement] = field(default_factory=list)  # RF16
+    announcements_error: str = ""
 
 
 def _event_start(event: calendar_export.CalendarEvent) -> int:
@@ -434,7 +436,64 @@ class CampusApp:
             result = SyncResult(summary)
             if not summary.invalid_token and not summary.cancelled:
                 self._export_calendar(client, registry, target, result)
+                self._check_announcements(client, registry, target, result)
         self._write_news(target, result)
+        return result
+
+    def _check_announcements(
+        self, client: MoodleClient, registry: Registry, target: SyncTarget, result: SyncResult
+    ) -> None:
+        """Look for new announcements in the selected courses (errors are kept, RF16)."""
+        site_id = registry.get_or_create_site(target.site_url, target.user_id, target.academic_year)
+        folders = registry.course_folders(site_id)
+        aliases = {
+            course_id: PurePosixPath(folders[course_id]).name
+            for course_id in self.settings.selected_courses
+            if course_id in folders
+        }
+        try:
+            result.announcements = extras.new_announcements(client, registry, site_id, aliases)
+        except (MoodleError, requests.RequestException) as error:
+            result.announcements_error = str(error)
+
+    # --- submissions and grades (RF17, RF18) ----------------------------
+
+    def _aliases_for(self, courses: list[CourseChoice], selected_only: bool) -> dict[int, str]:
+        """Return {course id: alias} (computed alias for courses never synced)."""
+        result = {
+            choice.course_id: choice.alias or organizer.course_alias(choice.fullname)
+            for choice in courses
+            if not selected_only or choice.course_id in self.settings.selected_courses
+        }
+        return result
+
+    def submissions(self, courses: list[CourseChoice]) -> list[extras.SubmissionRow]:
+        """Return the submission state of every assignment of the selected courses.
+
+        Raises: AppError, MoodleError, requests.RequestException.
+        """
+        aliases = self._aliases_for(courses, selected_only=True)
+        with self._client_factory(self.settings.site_url, self._token()) as client:
+            result = extras.submissions(client, aliases)
+        return result
+
+    def course_grades(self, courses: list[CourseChoice]) -> list[extras.CourseGrade]:
+        """Return the overall grade of each course (all enrolled courses, RF18).
+
+        Raises: AppError, MoodleError, requests.RequestException.
+        """
+        names = {choice.course_id: choice.fullname for choice in courses}
+        with self._client_factory(self.settings.site_url, self._token()) as client:
+            result = extras.course_grades(client, self.settings.user_id, names)
+        return result
+
+    def grade_items(self, course_id: int) -> list[extras.GradeItem]:
+        """Return the detailed grade report of one course (RF18).
+
+        Raises: AppError, MoodleError, requests.RequestException.
+        """
+        with self._client_factory(self.settings.site_url, self._token()) as client:
+            result = extras.grade_items(client, course_id, self.settings.user_id)
         return result
 
     def _write_news(self, target: SyncTarget, result: SyncResult) -> None:

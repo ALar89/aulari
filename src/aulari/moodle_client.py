@@ -38,6 +38,12 @@ ALLOWED_FUNCTIONS = frozenset(
         "core_course_get_contents",
         "mod_assign_get_assignments",
         "core_calendar_get_calendar_events",
+        # RF16-RF18 (verified on e-aules, design.md section 10).
+        "mod_forum_get_forums_by_courses",
+        "mod_forum_get_forum_discussions",
+        "mod_assign_get_submission_status",
+        "gradereport_overview_get_course_grades",
+        "gradereport_user_get_grade_items",
     }
 )
 

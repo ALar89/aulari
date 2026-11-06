@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 STATE_PRESENT = "present"
 STATE_MISSING = "missing"
 STATE_REMOVED = "removed_in_moodle"
@@ -83,6 +83,18 @@ CREATE TABLE calendar_events (
     PRIMARY KEY (site_id, event_id)
 );
 """,
+    3: """
+CREATE TABLE checked_forums (
+    site_id  INTEGER NOT NULL REFERENCES sites (id),
+    forum_id INTEGER NOT NULL,
+    PRIMARY KEY (site_id, forum_id)
+);
+CREATE TABLE seen_discussions (
+    site_id       INTEGER NOT NULL REFERENCES sites (id),
+    discussion_id INTEGER NOT NULL,
+    PRIMARY KEY (site_id, discussion_id)
+);
+""",
 }
 
 _LATEST_VERSION = """
@@ -134,7 +146,7 @@ class Registry:
         self._conn.execute("PRAGMA foreign_keys = ON")
         try:
             self._create_or_check_schema()
-        except RegistryError:
+        except RegistryError, sqlite3.Error:
             # Do not leave the file open (Windows would keep it locked).
             self._conn.close()
             raise
@@ -451,3 +463,39 @@ class Registry:
                 (site_id, event_id, timemodified, result),
             )
         return result
+
+    # --- announcements (RF16) ------------------------------------------
+
+    def forum_checked(self, site_id: int, forum_id: int) -> bool:
+        """Return True if this news forum was already checked once."""
+        row = self._conn.execute(
+            "SELECT 1 FROM checked_forums WHERE site_id = ? AND forum_id = ?", (site_id, forum_id)
+        ).fetchone()
+        result = row is not None
+        return result
+
+    def seen_discussions(self, site_id: int, discussion_ids: list[int]) -> set[int]:
+        """Return which of discussion_ids were already seen."""
+        result = set()
+        for discussion_id in discussion_ids:
+            row = self._conn.execute(
+                "SELECT 1 FROM seen_discussions WHERE site_id = ? AND discussion_id = ?",
+                (site_id, discussion_id),
+            ).fetchone()
+            if row is not None:
+                result.add(discussion_id)
+        return result
+
+    def mark_discussions_seen(self, site_id: int, forum_id: int, discussion_ids: list[int]) -> None:
+        """Remember the forum as checked and the discussions as seen."""
+        with self._conn:
+            self._conn.execute(
+                "INSERT INTO checked_forums (site_id, forum_id) VALUES (?, ?) "
+                "ON CONFLICT (site_id, forum_id) DO NOTHING",
+                (site_id, forum_id),
+            )
+            self._conn.executemany(
+                "INSERT INTO seen_discussions (site_id, discussion_id) VALUES (?, ?) "
+                "ON CONFLICT (site_id, discussion_id) DO NOTHING",
+                [(site_id, discussion_id) for discussion_id in discussion_ids],
+            )

@@ -51,6 +51,7 @@ class FakeClient:
     """Fake MoodleClient for every function CampusApp uses."""
 
     enrolled = list(COURSES)
+    discussions = []  # announcements in the news forum of course 1072
 
     def __init__(self, site_url: str, token: str) -> None:
         """Remember the token used."""
@@ -94,7 +95,36 @@ class FakeClient:
                     ],
                 }
             ],
-            "mod_assign_get_assignments": {"courses": []},
+            "mod_assign_get_assignments": {
+                "courses": [{"id": 1072, "assignments": [{"id": 6118, "name": "P1", "duedate": 9}]}]
+            },
+            "mod_assign_get_submission_status": {
+                "lastattempt": {"submission": {"status": "submitted"}},
+                "feedback": {"gradefordisplay": "8,50", "plugins": [{"type": "comments"}]},
+            },
+            "mod_forum_get_forums_by_courses": [
+                {"id": 3003, "course": 1072, "type": "news"},
+                {"id": 3004, "course": 1072, "type": "general"},
+            ],
+            "mod_forum_get_forum_discussions": {"discussions": FakeClient.discussions},
+            "gradereport_overview_get_course_grades": {
+                "grades": [{"courseid": 1072, "grade": "7,25"}, {"courseid": 472, "grade": "-"}]
+            },
+            "gradereport_user_get_grade_items": {
+                "usergrades": [
+                    {
+                        "gradeitems": [
+                            {
+                                "itemname": "P1",
+                                "gradeformatted": "8,50",
+                                "rangeformatted": "0–10",
+                                "percentageformatted": "85,00 %",
+                            },
+                            {"itemname": None, "itemtype": "course", "gradeformatted": ""},
+                        ]
+                    }
+                ]
+            },
             "core_calendar_get_calendar_events": {
                 "events": [{"id": 9, "name": "Entrega", "courseid": 1072, "timestart": 1790000000}]
             },
@@ -308,6 +338,63 @@ class AliasTests(AppTestCase):
             self.app.rename_course(1072, "Mine")
         self.assertEqual(context.exception.key, "error_alias_taken")
         self.assertTrue((self.year_dir / "SO").exists())
+
+
+def discussion(discussion_id: int, subject: str, when: int) -> dict:
+    """Return a news forum discussion as Moodle gives it."""
+    return {
+        "id": discussion_id * 10,
+        "discussion": discussion_id,
+        "subject": subject,
+        "message": f"<p>{subject} &amp; more</p>",
+        "timemodified": when,
+    }
+
+
+class ExtrasTests(AppTestCase):
+    """Announcements (RF16), submissions (RF17) and grades (RF18)."""
+
+    def setUp(self) -> None:
+        """Log in, select SO and set a destination."""
+        super().setUp()
+        FakeClient.discussions = [discussion(1, "Benvinguda", 100)]
+        self.log_in()
+        self.choices = self.app.list_courses()
+        self.app.set_selection([1072])
+        self.app.set_destination(self.destination)
+
+    def test_first_sync_marks_existing_announcements_as_seen(self) -> None:
+        """Old announcements are not reported; a later one is, only once."""
+        self.assertEqual(self.app.run_sync(self.choices).announcements, [])
+        FakeClient.discussions = [discussion(1, "Benvinguda", 100), discussion(2, "Examen", 200)]
+        result = self.app.run_sync(self.choices)
+        self.assertEqual(
+            [(a.course_alias, a.subject) for a in result.announcements], [("SO", "Examen")]
+        )
+        self.assertEqual(result.announcements[0].message, "Examen & more")
+        self.assertEqual(self.app.run_sync(self.choices).announcements, [])
+
+    def test_submissions(self) -> None:
+        """Each assignment of the selected courses has status, grade and comments flag."""
+        rows = self.app.submissions(self.choices)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(
+            (row.course_alias, row.name, row.status, row.grade), ("SO", "P1", "submitted", "8,50")
+        )
+        self.assertTrue(row.has_comments)
+
+    def test_grades(self) -> None:
+        """Course grades use course names; empty grades become a dash."""
+        grades = {grade.course_id: grade for grade in self.app.course_grades(self.choices)}
+        self.assertEqual(grades[1072].grade, "7,25")
+        self.assertEqual(grades[1072].course_name, "Sistemes Operatius [MO86824]")
+        self.assertEqual(grades[472].grade, "-")
+        items = self.app.grade_items(1072)
+        self.assertEqual(
+            (items[0].name, items[0].grade, items[0].percentage), ("P1", "8,50", "85,00 %")
+        )
+        self.assertEqual((items[1].name, items[1].grade), ("course", "—"))
 
 
 if __name__ == "__main__":
