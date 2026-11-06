@@ -49,5 +49,11 @@
   "login_auto_unavailable": "El inicio de sesión automático no está disponible en este equipo. Usa la opción manual.",
   "login_manual_toggle": "Introducir la dirección a mano",
   "login_manual_steps": "Solo si la opción automática no funciona: en el navegador, abre las herramientas de desarrollo (F12) > Red > «Conservar registro» antes de pulsar «Abrir navegador». Al terminar, en la petición «launch.php», copia el valor de la cabecera «Location» (empieza por moodlemobile://) y pégalo aquí.",
-  "callback_no_app": "Abre Campus Sync, pulsa «Abrir navegador» y vuelve a iniciar sesión."
+  "callback_no_app": "Abre Campus Sync, pulsa «Abrir navegador» y vuelve a iniciar sesión.",
+  "courses_loading": "Cargando asignaturas…",
+  "courses_none": "No se ha encontrado ninguna asignatura en este campus.",
+  "course_new_tag": "(nueva)",
+  "sync_starting": "Preparando la sincronización…",
+  "sync_cancelling": "Cancelando: se detendrá al terminar el archivo actual…",
+  "summary_more_errors": "  … y {count} errores más (detalles en el registro)."
 }
