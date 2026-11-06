@@ -139,7 +139,10 @@ Calendario (D3):
 Sitio por curso académico:
 - `https://e-aules.uab.cat/2025-26` sigue activo con la misma configuración (`typeoflogin` 2, CAS). Cada curso es un sitio distinto, con su propio token. No se ha comprobado qué cursos tiene el usuario en el sitio anterior.
 
-Pendiente: probar `core_calendar_get_calendar_events` con los `courseids` de las asignaturas y los `introattachments` (`mod_assign_get_assignments`).
+Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
+- `core_calendar_get_calendar_events` con los 10 `courseids` y la ventana de §8: 6 eventos (5 `due` de `assign`, 1 `close` de `quiz`), sin avisos. **Todos con `timeduration = 0`**: la regla `DTEND = DTSTART` de §8 se aplica a todos.
+- `mod_assign_get_assignments` (una asignatura): 5 tareas, 4 con `introattachments`, 8 archivos (8,6 MB), todos por `webservice/pluginfile.php`. No hay `introfiles`.
+- **Discrepancia sin explicar:** `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos (`warnings`). Hipótesis: son tareas ocultas o con restricciones (hay 12 módulos con `uservisible = false`). Falta leer los avisos grabados para confirmarlo.
 
 ## 11. Legal y distribución
 
