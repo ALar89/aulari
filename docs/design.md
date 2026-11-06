@@ -159,6 +159,12 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - **Proton Calendar** importa el archivo en un calendario de prueba: hora local correcta (23:59), título `[SO] …` con acentos correctos y duración cero mostrada como «23:59 – 23:59».
 - **Reimportar el mismo archivo no duplica eventos** (UID estables): el riesgo de §12 queda resuelto para Proton. Falta ver qué pasa cuando un evento cambia (`SEQUENCE` 1) o desaparece de Moodle.
 
+### Fase 4: captura del token en Windows (verificado el 2026-11-06)
+
+- Sin las DevTools, el navegador no muestra la redirección `moodlemobile://token=…`: Windows no tiene programa para ese esquema y el navegador no hace nada. Pedir al usuario que la copie no es viable sin F12.
+- `launch.php` con `urlscheme=campussync` redirige igualmente a **`moodlemobile://`**: e-aules **fuerza el esquema** (`tool_mobile_forcedurlscheme`). Un esquema propio no sirve.
+- Decisión del usuario: login lo más automático posible → registrar `moodlemobile://` para el usuario actual (plan pendiente de aprobar).
+
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 
 - En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
