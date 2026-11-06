@@ -5,6 +5,7 @@ everything here can be tested without a window. Methods that use the
 network are meant to run in a worker thread (CLAUDE.md section 3).
 """
 
+import sqlite3
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ from campus_sync.sync import (
     Course,
     Progress,
     Syncer,
+    SyncLock,
     SyncSummary,
     SyncTarget,
     load_machine_id,
@@ -48,6 +50,7 @@ class CourseChoice:
     fullname: str
     is_new: bool
     selected: bool
+    alias: str = ""  # folder alias once the course has been synced (RF4)
 
 
 @dataclass
@@ -180,6 +183,7 @@ class CampusApp:
         Raises: AppError, MoodleError, requests.RequestException, OSError.
         """
         enrolled = self._fetch_courses()
+        aliases = self.course_aliases()
         first_time = not self.settings.known_courses
         known = set(self.settings.known_courses)
         selected = set(self.settings.selected_courses)
@@ -189,12 +193,99 @@ class CampusApp:
             is_new = not first_time and course_id not in known
             result.append(
                 CourseChoice(
-                    course_id, str(course.get("fullname", "")), is_new, course_id in selected
+                    course_id,
+                    str(course.get("fullname", "")),
+                    is_new,
+                    course_id in selected,
+                    aliases.get(course_id, ""),
                 )
             )
         self.settings.known_courses = sorted(int(course["id"]) for course in enrolled)
         self.save()
         return result
+
+    # --- aliases (RF4) --------------------------------------------------
+
+    def _site_id(self, registry: Registry, year: str) -> int:
+        """Return the registry id of the current site."""
+        result = registry.get_or_create_site(self.settings.site_url, self.settings.user_id, year)
+        return result
+
+    def course_aliases(self) -> dict[int, str]:
+        """Return {course id: folder alias} for the courses already synced.
+
+        Raises: OSError, RegistryError.
+        """
+        result = {}
+        year = organizer.academic_year_from_site(self.settings.site_url)
+        if year is not None and self.settings.user_id > 0:
+            with Registry(self.app_dir / REGISTRY_NAME) as registry:
+                folders = registry.course_folders(self._site_id(registry, year))
+            result = {cid: PurePosixPath(folder).name for cid, folder in folders.items()}
+        return result
+
+    def rename_course(self, course_id: int, new_alias: str) -> str:
+        """Rename a course alias: move its folder on disk and update the registry (RF4).
+
+        The disk move happens first, under the sync lock; if the registry
+        update fails, the folder is moved back. Returns the final alias.
+
+        Raises: AppError('error_alias_invalid', 'error_alias_not_synced',
+        'error_alias_taken', 'error_no_destination', 'error_no_year');
+        SyncLockedError; OSError; sqlite3.Error.
+        """
+        target = self._target()
+        try:
+            alias = organizer.sanitize_filename(new_alias.strip())
+        except ValueError as error:
+            raise AppError("error_alias_invalid") from error
+        with Registry(self.app_dir / REGISTRY_NAME) as registry:
+            site_id = self._site_id(registry, target.academic_year)
+            folders = registry.course_folders(site_id)
+            if course_id not in folders:
+                raise AppError("error_alias_not_synced")
+            old_folder = folders[course_id]
+            new_folder = f"{target.academic_year}/{alias}"
+            others = {
+                PurePosixPath(folder).name.casefold()
+                for cid, folder in folders.items()
+                if cid != course_id
+            }
+            if alias.casefold() in others:
+                raise AppError("error_alias_taken")
+            if new_folder != old_folder:
+                self._move_course_folder(registry, site_id, course_id, (old_folder, new_folder))
+        return alias
+
+    def _move_course_folder(
+        self, registry: Registry, site_id: int, course_id: int, folders: tuple[str, str]
+    ) -> None:
+        """Move <destination>/<old> to <destination>/<new> and update the registry.
+
+        Raises: AppError('error_alias_taken'); SyncLockedError; OSError; sqlite3.Error.
+        """
+        old_folder, new_folder = folders
+        destination = Path(self.settings.destination)
+        old_path = destination / old_folder
+        new_path = destination / new_folder
+        # Check both stay inside, but keep the unresolved paths: resolve()
+        # returns the on-disk case and would turn 'So' back into 'SO'.
+        organizer.ensure_inside(destination, old_path)
+        organizer.ensure_inside(destination, new_path)
+        with SyncLock(destination):
+            # A case-only change ('SO' -> 'So') points to the same folder on Windows.
+            same_folder = old_path.exists() and new_path.exists() and old_path.samefile(new_path)
+            if new_path.exists() and not same_folder:
+                raise AppError("error_alias_taken")
+            moved = old_path.exists()
+            if moved:
+                old_path.rename(new_path)
+            try:
+                registry.rename_course_folder(site_id, course_id, new_path.name, new_folder)
+            except sqlite3.Error:
+                if moved:
+                    new_path.rename(old_path)
+                raise
 
     # --- sync ----------------------------------------------------------
 

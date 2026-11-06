@@ -57,5 +57,11 @@
   "sync_cancelling": "Cancelando: se detendrá al terminar el archivo actual…",
   "summary_more_errors": "  … y {count} errores más (detalles en el registro).",
   "restore_button": "Recuperar borrados",
-  "summary_restored": "Recuperados (los habías borrado): {count}"
+  "summary_restored": "Recuperados (los habías borrado): {count}",
+  "alias_button": "Carpeta: {alias} ✎",
+  "alias_prompt": "Nuevo nombre de carpeta para «{course}»:",
+  "alias_done": "Carpeta renombrada a «{alias}».",
+  "error_alias_invalid": "Ese nombre de carpeta no es válido.",
+  "error_alias_not_synced": "Sincroniza la asignatura una vez antes de cambiar su carpeta.",
+  "error_alias_taken": "Ya hay otra carpeta con ese nombre en este curso académico."
 }

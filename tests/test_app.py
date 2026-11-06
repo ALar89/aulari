@@ -232,5 +232,58 @@ class SyncTests(AppTestCase):
         self.assertEqual(self.app.run_sync(self.choices).summary.new, 2)
 
 
+class AliasTests(AppTestCase):
+    """course_aliases() and rename_course() (RF4)."""
+
+    def setUp(self) -> None:
+        """Log in, select two courses and sync them once."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([472, 1072])
+        self.app.set_destination(self.destination)
+        self.app.run_sync(self.app.list_courses())
+        self.year_dir = self.destination / "2026-27"
+
+    def test_aliases_after_sync(self) -> None:
+        """Synced courses have aliases; the others do not."""
+        self.assertEqual(self.app.course_aliases(), {1072: "SO", 472: "EC"})
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertEqual((choices[1072].alias, choices[402].alias), ("SO", ""))
+
+    def test_rename_moves_folder_and_keeps_sync_working(self) -> None:
+        """The folder moves, the registry follows, and the next sync finds everything."""
+        self.assertEqual(self.app.rename_course(1072, " SistOp "), "SistOp")
+        self.assertFalse((self.year_dir / "SO").exists())
+        self.assertTrue((self.year_dir / "SistOp" / "00 - General" / "guia.pdf").exists())
+        self.assertEqual(self.app.course_aliases()[1072], "SistOp")
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual((summary.new, summary.missing_locally), (0, 0))
+
+    def test_case_only_rename(self) -> None:
+        """'SO' -> 'So' works although Windows sees it as the same folder."""
+        self.app.rename_course(1072, "So")
+        self.assertEqual(self.app.course_aliases()[1072], "So")
+        self.assertIn("So", [path.name for path in self.year_dir.iterdir()])
+
+    def test_rename_errors(self) -> None:
+        """Taken, invalid and never-synced aliases are refused with a text key."""
+        cases = [(1072, "EC", "error_alias_taken"), (1072, "..", "error_alias_invalid")]
+        cases.append((402, "VIU", "error_alias_not_synced"))
+        for course_id, alias, key in cases:
+            with self.assertRaises(AppError, msg=alias) as context:
+                self.app.rename_course(course_id, alias)
+            self.assertEqual(context.exception.key, key)
+        self.assertTrue((self.year_dir / "SO").exists())
+
+    def test_existing_folder_with_that_name_is_refused(self) -> None:
+        """A folder the user created with the new name is never overwritten."""
+        (self.year_dir / "Mine").mkdir()
+        with self.assertRaises(AppError) as context:
+            self.app.rename_course(1072, "Mine")
+        self.assertEqual(context.exception.key, "error_alias_taken")
+        self.assertTrue((self.year_dir / "SO").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

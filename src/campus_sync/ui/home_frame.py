@@ -9,7 +9,7 @@ import threading
 import tkinter as tk
 from collections.abc import Callable
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import keyring.errors
 
@@ -107,8 +107,9 @@ class HomeFrame(ttk.Frame):
         self._choose_button.configure(state=state)
         self._logout_button.configure(state=state)
         self._cancel_button.configure(state="normal" if syncing else "disabled")
-        for child in self._courses.winfo_children():
-            child.configure(state=state)
+        for row in self._courses.winfo_children():
+            for widget in row.winfo_children():
+                widget.configure(state=state)
 
     # --- courses -------------------------------------------------------
 
@@ -127,17 +128,43 @@ class HomeFrame(ttk.Frame):
         for choice in self._choices:
             variable = tk.BooleanVar(value=choice.selected)
             self._checks[choice.course_id] = variable
+            row = ttk.Frame(self._courses)
+            row.pack(fill="x")
             ttk.Checkbutton(
-                self._courses,
+                row,
                 text=course_label(choice),
                 variable=variable,
                 command=self._selection_changed,
-            ).pack(anchor="w")
+            ).pack(side="left", anchor="w")
+            if choice.alias:
+                ttk.Button(
+                    row,
+                    text=text("alias_button", alias=choice.alias),
+                    command=functools.partial(self._ask_alias, choice),
+                ).pack(side="right")
         new_courses = [choice for choice in self._choices if choice.is_new]
         self._status.set(text("courses_new") if new_courses else "")
         if not self._choices:
             self._status.set(text("courses_none"))
         self._set_busy(False)
+
+    def _ask_alias(self, choice: CourseChoice) -> None:
+        """Ask for a new folder alias and rename the course folder (RF4)."""
+        new_alias = simpledialog.askstring(
+            text("app_title"),
+            text("alias_prompt", course=choice.fullname),
+            initialvalue=choice.alias,
+            parent=self,
+        )
+        if new_alias and new_alias.strip() != choice.alias:
+            self._set_busy(True)
+            task = functools.partial(self._app.rename_course, choice.course_id, new_alias)
+            self._worker.start(task, self._alias_done, self._task_failed)
+
+    def _alias_done(self, alias: object) -> None:
+        """Main thread: the folder was renamed; reload the list to show it."""
+        self._worker.start(self._app.list_courses, self._courses_loaded, self._task_failed)
+        self._status.set(text("alias_done", alias=alias))
 
     def _selection_changed(self) -> None:
         """Save the selection every time a checkbox changes."""

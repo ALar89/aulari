@@ -32,7 +32,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
 | RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. |
 | RF7 | Versiones nuevas como `Name (AAAA-MM-DD).ext`, fecha en hora de Europa/Madrid; si coincide, `AAAA-MM-DD HHMM` y después ` (2)`. Nunca se sobrescribe. |
-| RF8 | "Volver a descargar" a nivel de archivo, sección o curso. |
+| RF8 | "Volver a descargar": en la v1, botón «Recuperar borrados» que vuelve a descargar, en su sitio, los archivos de las asignaturas marcadas que el usuario borró (decidido el 2026-11-06; por archivo o sección, más adelante). |
 | RF9 | Calendario según D3. |
 | RF10 | Sincronización manual con progreso y cancelación (corte seguro entre archivos). Al terminar, resumen: nuevos, versiones nuevas, eliminados en Moodle, errores. |
 | RF11 | Primera ejecución con material ya descargado a mano: si el archivo de destino existe con el mismo tamaño, se adopta en lugar de duplicarlo. |

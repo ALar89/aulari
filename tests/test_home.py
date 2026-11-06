@@ -125,8 +125,8 @@ class HomeFrameSmokeTests(unittest.TestCase):
         self.root.mainloop()
 
     def checkbuttons(self) -> list[ttk.Checkbutton]:
-        """Return the course checkboxes."""
-        return list(self.frame._courses.winfo_children())
+        """Return the course checkboxes (one per row)."""
+        return [row.winfo_children()[0] for row in self.frame._courses.winfo_children()]
 
     def test_courses_selection_and_sync(self) -> None:
         """Two checkboxes appear; ticking saves; syncing shows the summary."""
