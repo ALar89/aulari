@@ -163,15 +163,17 @@ class HomeFrame(ttk.Frame):
                 command=self._selection_changed,
             ).pack(side="left", anchor="w")
             if choice.alias:
-                ttk.Button(
-                    row,
-                    text=text("alias_button", alias=choice.alias),
-                    command=functools.partial(self._ask_alias, choice),
-                ).pack(side="right")
+                # 'Abrir' has a fixed width, so it goes at the right edge and stays
+                # aligned; the alias button, whose width varies, goes to its left.
                 ttk.Button(
                     row,
                     text=text("open_course_folder"),
                     command=functools.partial(self._open_course_folder, choice),
+                ).pack(side="right")
+                ttk.Button(
+                    row,
+                    text=text("alias_button", alias=choice.alias),
+                    command=functools.partial(self._ask_alias, choice),
                 ).pack(side="right", padx=(0, PADDING // 2))
         new_courses = [choice for choice in self._choices if choice.is_new]
         self._status.set(text("courses_new") if new_courses else "")
