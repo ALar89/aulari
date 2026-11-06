@@ -20,6 +20,12 @@ ALLOWED_FUNCTIONS = {
     "core_calendar_get_calendar_export_token",
     "core_calendar_get_calendar_events",
     "mod_assign_get_assignments",
+    # Block 2 checks (RF16-RF18): all read-only.
+    "mod_forum_get_forums_by_courses",
+    "mod_forum_get_forum_discussions",
+    "mod_assign_get_submission_status",
+    "gradereport_overview_get_course_grades",
+    "gradereport_user_get_grade_items",
 }
 
 
