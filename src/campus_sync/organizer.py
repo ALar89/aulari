@@ -10,7 +10,11 @@ import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
+# Version dates use the university's time zone (RF7). On Windows the time
+# zone data comes from the 'tzdata' package.
+LOCAL_TIMEZONE = ZoneInfo("Europe/Madrid")
 SECTION_MAX_LENGTH = 60
 FILE_MAX_LENGTH = 100
 HASH_LENGTH = 8
@@ -224,10 +228,16 @@ def section_folder(number: int, name: str) -> str:
     return result
 
 
+def to_local_time(timestamp: int) -> datetime:
+    """Return a Unix timestamp (e.g. Moodle's timemodified) in Europe/Madrid time."""
+    result = datetime.fromtimestamp(timestamp, LOCAL_TIMEZONE)
+    return result
+
+
 def versioned_filename(name: str, local_moment: datetime, include_time: bool = False) -> str:
     """Return 'Name (YYYY-MM-DD).ext', or 'Name (YYYY-MM-DD HHMM).ext' (RF7).
 
-    local_moment must already be in Europe/Madrid time; the caller converts it.
+    local_moment must be in Europe/Madrid time: use to_local_time().
     """
     stem, suffix = _split_extension(name)
     pattern = "%Y-%m-%d %H%M" if include_time else "%Y-%m-%d"

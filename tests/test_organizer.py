@@ -185,5 +185,22 @@ class SectionAndVersionTests(unittest.TestCase):
                 organizer.url_shortcut_content(bad_url)
 
 
+class LocalTimeTests(unittest.TestCase):
+    """Tests for to_local_time() (Europe/Madrid, RF7)."""
+
+    def test_winter_and_summer_offsets(self) -> None:
+        """CET is UTC+1 in winter and CEST is UTC+2 in summer."""
+        winter = int(datetime(2026, 11, 6, 17, 5, tzinfo=UTC).timestamp())
+        summer = int(datetime(2026, 7, 1, 10, 0, tzinfo=UTC).timestamp())
+        self.assertEqual(organizer.to_local_time(winter).strftime("%H:%M"), "18:05")
+        self.assertEqual(organizer.to_local_time(summer).strftime("%H:%M"), "12:00")
+
+    def test_date_changes_near_midnight(self) -> None:
+        """23:30 UTC is already the next day in Madrid, so the version date moves."""
+        late = int(datetime(2026, 11, 6, 23, 30, tzinfo=UTC).timestamp())
+        name = organizer.versioned_filename("a.pdf", organizer.to_local_time(late))
+        self.assertEqual(name, "a (2026-11-07).pdf")
+
+
 if __name__ == "__main__":
     unittest.main()
