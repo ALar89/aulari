@@ -142,7 +142,7 @@ Sitio por curso académico:
 Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `core_calendar_get_calendar_events` con los 10 `courseids` y la ventana de §8: 6 eventos (5 `due` de `assign`, 1 `close` de `quiz`), sin avisos. **Todos con `timeduration = 0`**: la regla `DTEND = DTSTART` de §8 se aplica a todos.
 - `mod_assign_get_assignments` (una asignatura): 5 tareas, 4 con `introattachments`, 8 archivos (8,6 MB), todos por `webservice/pluginfile.php`. No hay `introfiles`.
-- **Discrepancia sin explicar:** `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos (`warnings`). Hipótesis: son tareas ocultas o con restricciones (hay 12 módulos con `uservisible = false`). Falta leer los avisos grabados para confirmarlo.
+- `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos. Los 4 avisos son `item: module`, `warningcode: 1`, "No access rights in module context": son las 4 tareas a las que el usuario no tiene acceso (probablemente las ocultas o restringidas, `uservisible = false`; no se ha cruzado con la grabación de contenidos). **Consecuencia:** un aviso de este tipo es normal, no un error; la sincronización lo registra y sigue (RNF de robustez, §9).
 
 ## 11. Legal y distribución
 
