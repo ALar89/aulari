@@ -144,6 +144,11 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `mod_assign_get_assignments` (una asignatura): 5 tareas, 4 con `introattachments`, 8 archivos (8,6 MB), todos por `webservice/pluginfile.php`. No hay `introfiles`.
 - `core_course_get_contents` muestra 9 módulos `assign` en esa asignatura, pero `mod_assign_get_assignments` devuelve 5 tareas y 4 avisos. Los 4 avisos son `item: module`, `warningcode: 1`, "No access rights in module context": son las 4 tareas a las que el usuario no tiene acceso (probablemente las ocultas o restringidas, `uservisible = false`; no se ha cruzado con la grabación de contenidos). **Consecuencia:** un aviso de este tipo es normal, no un error; la sincronización lo registra y sigue (RNF de robustez, §9).
 
+### Fase 2: descarga de archivos (verificado el 2026-11-06)
+
+- `webservice/pluginfile.php` **acepta el token en el cuerpo POST** (`token=`), sin ponerlo en la URL: `poc/download_one.py` descargó un archivo de 640 bytes con el mismo tamaño que declara Moodle.
+- Los módulos `page` listan un `index.html` generado con `filesize = 0`: no son comparables por tamaño y quedan fuera de la v1 (§14). La sincronización debe ignorarlos.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
