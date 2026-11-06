@@ -2,9 +2,11 @@
 
 import io
 import logging
+import tempfile
 import unittest
+from pathlib import Path
 
-from campus_sync.log_filter import RedactingFilter, redact
+from campus_sync.log_filter import RedactingFilter, configure_logging, redact
 
 SECRET = "abc123SECRETxyz"
 
@@ -72,6 +74,29 @@ class RedactingFilterTests(unittest.TestCase):
         output = self.stream.getvalue()
         self.assertNotIn(SECRET, output)
         self.assertIn("ValueError: bad url token=***", output)
+
+
+class LogFileTests(unittest.TestCase):
+    """configure_logging() with a rotating log file."""
+
+    def test_file_handler_redacts(self) -> None:
+        """Secrets logged through the root logger never reach the log file."""
+        root = logging.getLogger()
+        before = list(root.handlers)
+        with tempfile.TemporaryDirectory() as folder:
+            log_file = Path(folder) / "logs" / "campus-sync.log"
+            configure_logging(log_file=log_file)
+            try:
+                logging.getLogger("campus_sync.test").warning("url ?wstoken=%s", SECRET)
+                for handler in root.handlers:
+                    handler.flush()
+                content = log_file.read_text(encoding="utf-8")
+            finally:
+                for handler in root.handlers[len(before) :]:
+                    handler.close()
+                root.handlers = before
+            self.assertIn("wstoken=***", content)
+            self.assertNotIn(SECRET, content)
 
 
 if __name__ == "__main__":

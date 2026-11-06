@@ -9,7 +9,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 - **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
 - **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/campus_sync/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
 - **Fase 3 terminada** (confirmada por el usuario el 2026-11-06): `calendar_export.py`, verificado con Proton Calendar (sin duplicados al reimportar).
-- Siguiente paso: **Fase 4**, interfaz Tkinter (`docs/design.md` §13). Incluye lanzar la exportación del calendario tras cada sincronización.
+- **Fase 4 terminada** (confirmada por el usuario el 2026-11-06): interfaz Tkinter en `src/campus_sync/ui/` (`python -m campus_sync`), login automático con `moodlemobile://`, sincronización con calendario, alias, «Recuperar borrados».
+- Siguiente paso: **Fase 5**, empaquetado y publicación (`docs/design.md` §11 y §13). Antes, decidir el nombre (D5).
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 

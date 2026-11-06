@@ -26,13 +26,13 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | ID | Requisito |
 |---|---|
 | RF1 | URL del campus configurable, UAB por defecto. Si el sitio no permite el acceso, mensaje claro. |
-| RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica cómo revocarlo en el perfil de Moodle. |
-| RF3 | Selección de asignaturas con casillas; se recuerda la última selección. Por defecto, cursos en curso (`core_course_get_enrolled_courses_by_timeline_classification`, `inprogress`). Los cursos nuevos se proponen, no se descargan sin confirmar. |
+| RF2 | Inicio de sesión según D1. **Cerrar sesión** borra el token del keyring y explica que el token sigue siendo válido hasta que caduque: en e-aules no hay forma de revocarlo desde el perfil (ver §10). |
+| RF3 | Selección de asignaturas con casillas; se recuerda la última selección. **La primera vez no se marca ninguna** (decidido el 2026-11-06): en e-aules la clasificación `inprogress` incluye también los espacios que no son asignaturas, y el usuario puede no querer todas. Los cursos nuevos se proponen, no se descargan sin confirmar. |
 | RF4 | Alias de carpeta por asignatura (§5), editable. Cambiarlo después mueve la carpeta y actualiza el registro en una sola transacción. |
 | RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
 | RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. |
 | RF7 | Versiones nuevas como `Name (AAAA-MM-DD).ext`, fecha en hora de Europa/Madrid; si coincide, `AAAA-MM-DD HHMM` y después ` (2)`. Nunca se sobrescribe. |
-| RF8 | "Volver a descargar" a nivel de archivo, sección o curso. |
+| RF8 | "Volver a descargar": en la v1, botón «Recuperar borrados» que vuelve a descargar, en su sitio, los archivos de las asignaturas marcadas que el usuario borró (decidido el 2026-11-06; por archivo o sección, más adelante). |
 | RF9 | Calendario según D3. |
 | RF10 | Sincronización manual con progreso y cancelación (corte seguro entre archivos). Al terminar, resumen: nuevos, versiones nuevas, eliminados en Moodle, errores. |
 | RF11 | Primera ejecución con material ya descargado a mano: si el archivo de destino existe con el mismo tamaño, se adopta en lugar de duplicarlo. |
@@ -45,7 +45,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - **QR** (`tool_mobile_get_tokens_for_qr_login`): exige User-Agent de la app oficial, HTTPS, clave de 10 minutos y, por defecto, la misma IP. Un cliente de terceros solo funciona falseando el User-Agent. **Descartado salvo que la Fase 1 demuestre lo contrario sin falsear nada.**
 - **Flujo de navegador** (`admin/tool/mobile/launch.php?service=moodle_mobile_app&passport=<aleatorio>&urlscheme=<esquema>`): el usuario inicia sesión en su navegador (SSO incluido) y Moodle redirige a `<esquema>://token=<base64>`. No comprueba el User-Agent. Requiere que `typeoflogin` sea navegador, navegador integrado o haya OAuth2. En Windows, o se registra el esquema de URL o el usuario copia la URL final y el script la lee con `getpass`.
 - **"Claves de seguridad"** del perfil: **no sirve**, desde Moodle 4.3 no muestra el valor del token.
-- El token caduca (por defecto 12 semanas). Ante `invalidtoken`, parar la sincronización limpiamente y pedir iniciar sesión de nuevo.
+- El token caduca (por defecto 12 semanas; no verificado en e-aules). En e-aules, Preferencias no tiene «Claves de seguridad»: el estudiante no puede revocar el token por su cuenta. Ante `invalidtoken`, parar la sincronización limpiamente y pedir iniciar sesión de nuevo.
 - Se descarta y nunca se guarda `privatetoken`.
 
 ## 5. Nombres y rutas
@@ -83,7 +83,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 7. API de Moodle
 
-- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_enrolled_courses_by_timeline_classification`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`.
+- **Lista blanca** de funciones de lectura: `core_webservice_get_site_info`, `tool_mobile_get_public_config`, `core_enrol_get_users_courses`, `core_course_get_contents`, `mod_assign_get_assignments`, `core_calendar_get_calendar_events`.
 - **Contenido visible:** `contents` solo llega si `uservisible`. Los `introattachments` pueden no aparecer fuera de plazo si el profesor lo configura así.
 - **Descarga:** `fileurl` por `webservice/pluginfile.php`, añadiendo el token.
 - **Calendario (D3):** `core_calendar_get_calendar_events` con **todos los `courseids` seleccionados** y un rango `timestart`/`timeend`. Si no se pasan cursos, no devuelve los eventos de curso.
@@ -158,6 +158,30 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - `poc/export_calendar.py` con los 10 cursos: 6 eventos (`SO` 3, `SDiLDH` 1, `EC` 2), ninguno con `DTEND`.
 - **Proton Calendar** importa el archivo en un calendario de prueba: hora local correcta (23:59), título `[SO] …` con acentos correctos y duración cero mostrada como «23:59 – 23:59».
 - **Reimportar el mismo archivo no duplica eventos** (UID estables): el riesgo de §12 queda resuelto para Proton. Falta ver qué pasa cuando un evento cambia (`SEQUENCE` 1) o desaparece de Moodle.
+
+### Fase 4: captura del token en Windows (verificado el 2026-11-06)
+
+- Sin las DevTools, el navegador no muestra la redirección `moodlemobile://token=…`: Windows no tiene programa para ese esquema y el navegador no hace nada. Pedir al usuario que la copie no es viable sin F12.
+- `launch.php` con `urlscheme=campussync` redirige igualmente a **`moodlemobile://`**: e-aules **fuerza el esquema** (`tool_mobile_forcedurlscheme`). Un esquema propio no sirve.
+- **Decidido e implementado (2026-11-06):** al pulsar «Abrir navegador» la app registra `moodlemobile://` en `HKCU\Software\Classes` (sin administrador), guarda y luego restaura cualquier manejador anterior, y abre un socket local (`127.0.0.1`, puerto aleatorio, clave de un solo uso en `login_handoff.json`, nunca el token). Windows lanza `--login-callback <url>`, que pasa la URL a la ventana y termina. Al acabar, fallar, agotar 10 minutos o cerrar, se quita el registro. Queda una opción manual (F12) como respaldo.
+- **Barra final añadida:** al pasar la URL al programa, llega `moodlemobile://token=<base64>/` (longitud del base64 no múltiplo de 4, «Excess data after padding»). Como Moodle siempre rellena el base64 a múltiplos de 4, se quita una sola `/` final cuando rompe esa longitud. Diagnosticado con `auth.redirect_shape()`, que nunca muestra el token.
+- **Verificado de punta a punta:** con la barra corregida, «Abrir navegador» → login CAS → «Open Python» deja la sesión iniciada sin copiar nada; al terminar, `moodlemobile://` vuelve a no tener manejador y no queda `login_handoff.json`. Cerrar y reabrir la app mantiene la sesión. En desarrollo el navegador muestra «Open Python»; con el ejecutable (fase 5) mostrará el nombre de la app.
+- **Riesgo aceptado:** el token viaja en la línea de órdenes del proceso de callback, visible para programas del mismo usuario; esos programas ya podrían leer el keyring (§9).
+
+### Fase 4: selección de cursos y primera sincronización desde la interfaz (2026-11-06)
+
+- `core_course_get_enrolled_courses_by_timeline_classification` (`inprogress`) devolvió los **10** cursos como en curso, incluidos los 4 espacios sin fecha de fin (información, coordinación). No sirve para preseleccionar: se elimina su uso y la primera lista sale sin marcar (RF3).
+- Sincronización de una asignatura desde la ventana: 34 nuevos, 0 errores, calendario con 3 eventos en `<destino>/2026-27/calendari.ics`. La carpeta de una sección sin archivos no se crea.
+
+### Fase 4: funciones extra (verificado el 2026-11-06)
+
+- Aviso de uso personal en la primera ejecución (RF12): se muestra una vez.
+- Cambio de alias (RF4): `SO` → `SO-Renombrada` mueve la carpeta y la siguiente sincronización la encuentra.
+- «Recuperar borrados» (RF8): con un archivo borrado a mano, resumen con 1 recuperado y 33 sin cambios.
+
+### Fase 4: cerrar sesión (verificado el 2026-11-06)
+
+- En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
 
 ## 11. Legal y distribución
 

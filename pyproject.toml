@@ -12,6 +12,10 @@ license = "MIT"
 # Exact pinned versions live in requirements.txt.
 dependencies = ["requests", "keyring", "tzdata"]
 
+[tool.setuptools.package-data]
+# UI texts are data files inside the package.
+campus_sync = ["strings/*.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"

@@ -35,7 +35,6 @@ ALLOWED_FUNCTIONS = frozenset(
         "core_webservice_get_site_info",
         "tool_mobile_get_public_config",
         "core_enrol_get_users_courses",
-        "core_course_get_enrolled_courses_by_timeline_classification",
         "core_course_get_contents",
         "mod_assign_get_assignments",
         "core_calendar_get_calendar_events",

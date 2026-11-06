@@ -1,6 +1,9 @@
 """Unit tests for campus_sync.sync: whole sync runs with a fake Moodle."""
 
 import hashlib
+import os
+import stat
+import sys
 import tempfile
 import threading
 import unittest
@@ -229,6 +232,17 @@ class SecondSyncTests(SyncTestCase):
         states = {row["filename"]: row["state"] for row in self.registry.files_of_course(1, 1072)}
         self.assertEqual(states["guia.pdf"], STATE_MISSING)
 
+    def test_restore_missing_downloads_again(self) -> None:
+        """'Recover deleted' puts a deleted file back in its place (RF8)."""
+        (self.section_dir / "guia.pdf").unlink()
+        (self.section_dir / "Docs.url").unlink()
+        syncer = sync.Syncer(self.moodle, self.registry, self.target)
+        summary = syncer.run([COURSE], MACHINE, restore_missing=True)
+        self.assertEqual((summary.restored, summary.missing_locally), (2, 0))
+        self.assertEqual((self.section_dir / "guia.pdf").read_bytes(), b"guide v1")
+        self.assertTrue((self.section_dir / "Docs.url").exists())
+        self.assertEqual(self.run_sync().missing_locally, 0)
+
     def test_removed_in_moodle_is_kept_locally(self) -> None:
         """A file gone from Moodle is marked, never deleted."""
         self.moodle.modules = [
@@ -251,7 +265,7 @@ class RobustnessTests(SyncTestCase):
         self.assertEqual(summary.new, 2)
         self.assertEqual(len(summary.errors), 1)
         self.assertIn("guia.pdf", summary.errors[0])
-        self.assertEqual(list((self.destination / sync.downloader.TEMP_DIR_NAME).iterdir()), [])
+        self.assertFalse((self.destination / sync.downloader.TEMP_DIR_NAME).exists())
 
     def test_invalid_token_stops_cleanly(self) -> None:
         """An expired token stops the run and is reported, and the lock is released."""
@@ -282,6 +296,16 @@ class RobustnessTests(SyncTestCase):
         self.assertFalse((self.destination / ".campus-sync" / "sync.lock").exists())
         sync.take_over_ownership(self.destination, MACHINE)
         self.assertEqual(self.run_sync().new, 3)
+
+    def test_temp_folder_is_removed_and_control_folder_hidden(self) -> None:
+        """After a sync no empty temp folder is left; .campus-sync is hidden on Windows."""
+        self.run_sync()
+        self.assertFalse((self.destination / sync.downloader.TEMP_DIR_NAME).exists())
+        control = self.destination / ".campus-sync"
+        self.assertTrue(control.is_dir())
+        if sys.platform == "win32":
+            attributes = os.stat(control).st_file_attributes
+            self.assertTrue(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
     def test_machine_id_is_stable(self) -> None:
         """The machine id is created once and then reused."""

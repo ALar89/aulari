@@ -12,6 +12,7 @@
 The app never opens or runs what it downloads.
 """
 
+import ctypes
 import hashlib
 import logging
 import secrets
@@ -28,6 +29,8 @@ TEMP_SUFFIX = ".part"
 MAX_PATH_LENGTH = 240
 MIN_FILENAME_LENGTH = 20
 URL_SUFFIX = ".url"
+FILE_ATTRIBUTE_HIDDEN = 0x2
+INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
 ZONE_IDENTIFIER = "[ZoneTransfer]\r\nZoneId=3\r\n"  # 3 = Internet zone
 # Characters kept as they are when percent-encoding a URL for a .url file.
 URL_SAFE_CHARS = ":/?#[]@!$&'()*+,;=%~"
@@ -140,9 +143,36 @@ def mark_downloaded_from_internet(path: Path) -> None:
 def _temp_path(destination: Path) -> Path:
     """Return a new, unused temporary file path inside the destination volume."""
     temp_dir = destination / TEMP_DIR_NAME
-    temp_dir.mkdir(parents=True, exist_ok=True)
+    if not temp_dir.is_dir():
+        temp_dir.mkdir(parents=True)
+        mark_hidden(temp_dir)
     result = temp_dir / (secrets.token_hex(8) + TEMP_SUFFIX)
     return result
+
+
+def mark_hidden(path: Path) -> None:
+    """Give a file or folder the Windows 'hidden' attribute (no-op elsewhere).
+
+    Failures (for example on some cloud folders) are only logged.
+    """
+    if sys.platform == "win32":
+        kernel32 = ctypes.windll.kernel32
+        attributes = kernel32.GetFileAttributesW(str(path))
+        ok = attributes != INVALID_FILE_ATTRIBUTES and kernel32.SetFileAttributesW(
+            str(path), attributes | FILE_ATTRIBUTE_HIDDEN
+        )
+        if not ok:
+            logger.warning("Could not hide %s", path.name)
+
+
+def remove_empty_temp_dir(destination: Path) -> None:
+    """Delete the temporary download folder if it is empty (after a sync).
+
+    Raises: OSError if it cannot be deleted.
+    """
+    temp_dir = destination / TEMP_DIR_NAME
+    if temp_dir.is_dir() and not any(temp_dir.iterdir()):
+        temp_dir.rmdir()
 
 
 def _move_exclusive(source: Path, target: Path) -> None:
