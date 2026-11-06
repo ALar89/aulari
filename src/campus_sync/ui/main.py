@@ -21,6 +21,8 @@ from campus_sync.ui.login_frame import LoginFrame
 from campus_sync.ui.messages import error_message
 from campus_sync.ui.worker import Worker, log_thread_exceptions
 
+LOG_DIR_NAME = "logs"
+LOG_FILE_NAME = "campus-sync.log"
 MIN_WIDTH = 620
 MIN_HEIGHT = 560
 
@@ -78,7 +80,7 @@ class MainWindow:
 
 def run() -> None:
     """Start the application."""
-    configure_logging()
+    configure_logging(log_file=default_app_dir() / LOG_DIR_NAME / LOG_FILE_NAME)
     log_thread_exceptions()
     root = tk.Tk()
     root.title(text("app_title"))
