@@ -7,7 +7,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 ## 1. Estado
 
 - **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
-- Siguiente paso: **Fase 2**, núcleo sin interfaz (`docs/design.md` §13).
+- **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/campus_sync/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
+- Siguiente paso: **Fase 3**, calendario con exportador propio (D3, `docs/design.md` §8).
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
