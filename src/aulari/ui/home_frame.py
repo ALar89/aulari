@@ -17,12 +17,23 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import keyring.errors
 
 from aulari.app import AppError, CampusApp, CourseChoice, SyncResult
+from aulari.extras import Announcement, CourseGrade
 from aulari.moodle_client import InvalidTokenError
 from aulari.sync import NotOwnerError, Progress
 from aulari.texts import text
 from aulari.ui.messages import error_message
 from aulari.ui.news_window import NewsWindow
-from aulari.ui.summary import course_label, deadline_line, progress_text, summary_text
+from aulari.ui.summary import (
+    announcement_rows,
+    course_label,
+    deadline_line,
+    grade_rows,
+    item_rows,
+    progress_text,
+    submission_rows,
+    summary_text,
+)
+from aulari.ui.table_window import AnnouncementsWindow, TableWindow
 from aulari.ui.worker import Worker
 
 PADDING = 12
@@ -60,6 +71,8 @@ class HomeFrame(ttk.Frame):
         self._destination = tk.StringVar(value=app.settings.destination)
         self._status = tk.StringVar()
         self._deadlines = tk.StringVar()
+        self._announcements: list[Announcement] = []
+        self._grades: list[CourseGrade] = []
         self._build()
         self._load_courses()
 
@@ -117,6 +130,21 @@ class HomeFrame(ttk.Frame):
             buttons, text=text("cancel_button"), command=self._cancel_sync, state="disabled"
         )
         self._cancel_button.pack(side="left", padx=(PADDING, 0))
+
+        extra = ttk.Frame(self)
+        extra.pack(fill="x", pady=(PADDING // 2, 0))
+        self._announcements_button = ttk.Button(
+            extra, text=text("announcements_button"), command=self._show_announcements
+        )
+        self._announcements_button.pack(side="left")
+        self._submissions_button = ttk.Button(
+            extra, text=text("submissions_button"), command=self._load_submissions
+        )
+        self._submissions_button.pack(side="left", padx=(PADDING, 0))
+        self._grades_button = ttk.Button(
+            extra, text=text("grades_button"), command=self._load_grades
+        )
+        self._grades_button.pack(side="left", padx=(PADDING, 0))
         self._progress = ttk.Progressbar(self, mode="determinate")
         self._progress.pack(fill="x", pady=(PADDING, 0))
         ttk.Label(self, textvariable=self._status, wraplength=WRAP_PIXELS, justify="left").pack(
@@ -129,6 +157,9 @@ class HomeFrame(ttk.Frame):
         self._sync_button.configure(state=state)
         self._restore_button.configure(state=state)
         self._news_button.configure(state=state)
+        self._announcements_button.configure(state=state)
+        self._submissions_button.configure(state=state)
+        self._grades_button.configure(state=state)
         self._choose_button.configure(state=state)
         self._open_button.configure(state=state)
         self._logout_button.configure(state=state)
@@ -298,10 +329,88 @@ class HomeFrame(ttk.Frame):
         self._set_busy(False)
         if isinstance(result, SyncResult):
             self._status.set(summary_text(result))
+            self._announcements = result.announcements
             if result.summary.invalid_token:
                 self._session_expired()
             else:
                 self._load_deadlines()
+                if result.announcements and messagebox.askyesno(
+                    text("app_title"),
+                    text("announcements_notice", count=len(result.announcements)),
+                    parent=self,
+                ):
+                    self._show_announcements()
+
+    # --- announcements, submissions, grades (RF16-RF18) ----------------
+
+    def _show_announcements(self) -> None:
+        """Show the announcements found by the last sync (RF16)."""
+        if self._announcements:
+            rows, messages = announcement_rows(self._announcements)
+            AnnouncementsWindow(self, rows, messages)
+        else:
+            self._status.set(text("announcements_none"))
+
+    def _load_submissions(self) -> None:
+        """Fetch the submission state of the selected courses in the background (RF17)."""
+        self._set_busy(True)
+        self._status.set(text("loading"))
+        task = functools.partial(self._app.submissions, self._choices)
+        self._worker.start(task, self._submissions_loaded, self._task_failed)
+
+    def _submissions_loaded(self, rows: object) -> None:
+        """Main thread: open the submissions table."""
+        self._set_busy(False)
+        self._status.set("" if rows else text("no_rows"))
+        columns = [
+            (text("column_course"), 10),
+            (text("column_task"), 40),
+            (text("column_due"), 16),
+            (text("column_status"), 12),
+            (text("column_grade"), 10),
+            (text("column_comments"), 11),
+        ]
+        TableWindow(self, text("submissions_title"), columns, submission_rows(list(rows)))
+
+    def _load_grades(self) -> None:
+        """Fetch the overall grade of each course in the background (RF18)."""
+        self._set_busy(True)
+        self._status.set(text("loading"))
+        task = functools.partial(self._app.course_grades, self._choices)
+        self._worker.start(task, self._grades_loaded, self._task_failed)
+
+    def _grades_loaded(self, grades: object) -> None:
+        """Main thread: open the grades table; a double click shows the detail."""
+        self._set_busy(False)
+        self._status.set("")
+        self._grades = list(grades)
+        columns = [(text("column_course"), 60), (text("column_grade"), 12)]
+        TableWindow(
+            self, text("grades_title"), columns, grade_rows(self._grades), self._load_grade_items
+        )
+
+    def _load_grade_items(self, index: int) -> None:
+        """Fetch the grade report of the course in row index (RF18)."""
+        if not self._worker.is_busy():
+            grade = self._grades[index]
+            self._set_busy(True)
+            self._status.set(text("loading"))
+            task = functools.partial(self._app.grade_items, grade.course_id)
+            done = functools.partial(self._grade_items_loaded, grade.course_name)
+            self._worker.start(task, done, self._task_failed)
+
+    def _grade_items_loaded(self, course_name: str, items: object) -> None:
+        """Main thread: open the grade report of one course."""
+        self._set_busy(False)
+        self._status.set("")
+        columns = [
+            (text("column_item"), 45),
+            (text("column_grade"), 10),
+            (text("column_range"), 10),
+            (text("column_percentage"), 12),
+        ]
+        title = text("grade_items_title", course=course_name)
+        TableWindow(self, title, columns, item_rows(list(items)))
 
     def _sync_failed(self, error: Exception) -> None:
         """Main thread: offer to take over a folder owned by another computer."""
