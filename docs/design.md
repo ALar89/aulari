@@ -91,7 +91,10 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 8. Calendario
 
-- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, `DTEND = DTSTART` en eventos sin duración, ventana de hoy −30 días a +1 año.
+- **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<host>`, horas en UTC, `DTSTAMP` y `SEQUENCE`, ventana de hoy −30 días a +1 año.
+- **Eventos sin duración** (decidido el 2026-11-06): **sin `DTEND`**. RFC 5545 exige que `DTEND` sea posterior a `DTSTART`; un `VEVENT` con `DTSTART` de fecha y hora y sin `DTEND` dura cero, que es lo que se quería con `DTEND = DTSTART`.
+- **`SEQUENCE`:** tabla `calendar_events` del registro; sube cuando cambia el `timemodified` del evento.
+- **Archivo** (decidido el 2026-11-06): `<destino>/<curso académico>/calendari.ics`, uno por curso (cada curso es un sitio). Lo genera la app, así que se reemplaza en cada exportación, de forma atómica.
 - **Limitación documentada:** importar no es sincronizar. Según el calendario, reimportar puede duplicar eventos, y los eventos borrados en Moodle no desaparecen. Hay que comprobar el comportamiento de Proton Calendar.
 
 ## 9. Requisitos no funcionales
