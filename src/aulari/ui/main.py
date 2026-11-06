@@ -1,6 +1,6 @@
 """Main window: shows the login screen or the main screen (phase 4).
 
-Start with:  python -m campus_sync
+Start with:  python -m aulari
 """
 
 import json
@@ -12,25 +12,25 @@ from tkinter import messagebox, ttk
 
 import keyring.errors
 
-from campus_sync.app import CampusApp
-from campus_sync.log_filter import configure_logging
-from campus_sync.texts import text
-from campus_sync.ui import url_handler
-from campus_sync.ui.home_frame import HomeFrame
-from campus_sync.ui.login_frame import LoginFrame
-from campus_sync.ui.messages import error_message
-from campus_sync.ui.worker import Worker, log_thread_exceptions
+from aulari.app import CampusApp
+from aulari.log_filter import configure_logging
+from aulari.texts import text
+from aulari.ui import url_handler
+from aulari.ui.home_frame import HomeFrame
+from aulari.ui.login_frame import LoginFrame
+from aulari.ui.messages import error_message
+from aulari.ui.worker import Worker, log_thread_exceptions
 
 LOG_DIR_NAME = "logs"
-LOG_FILE_NAME = "campus-sync.log"
+LOG_FILE_NAME = "aulari.log"
 MIN_WIDTH = 620
 MIN_HEIGHT = 560
 
 
 def default_app_dir() -> Path:
-    """Return %LOCALAPPDATA%\\campus-sync (the home folder as a fallback)."""
+    """Return %LOCALAPPDATA%\\aulari (the home folder as a fallback)."""
     base = os.environ.get("LOCALAPPDATA")
-    result = Path(base) / "campus-sync" if base else Path.home() / ".campus-sync"
+    result = Path(base) / "aulari" if base else Path.home() / ".aulari"
     return result
 
 

@@ -1,9 +1,9 @@
 """Build the user-facing texts of a sync result (no tkinter, so it is testable)."""
 
-from campus_sync.app import CourseChoice, SyncResult
-from campus_sync.log_filter import redact
-from campus_sync.sync import Progress
-from campus_sync.texts import text
+from aulari.app import CourseChoice, SyncResult
+from aulari.log_filter import redact
+from aulari.sync import Progress
+from aulari.texts import text
 
 MAX_ERRORS_SHOWN = 5
 

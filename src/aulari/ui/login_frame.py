@@ -2,7 +2,7 @@
 
 'Open browser' registers this app for moodlemobile:// (url_handler), opens a
 local socket (login_handoff) and opens launch.php. When the browser asks to
-open Campus Sync, the callback process sends the URL here, and the window
+open Aulari, the callback process sends the URL here, and the window
 checks it in the background. Registration and socket are removed when the
 login ends, fails, times out or the screen closes.
 
@@ -17,13 +17,13 @@ import webbrowser
 from collections.abc import Callable
 from tkinter import ttk
 
-from campus_sync import auth
-from campus_sync.app import CampusApp
-from campus_sync.texts import text
-from campus_sync.ui import url_handler
-from campus_sync.ui.login_handoff import HandoffServer
-from campus_sync.ui.messages import error_message
-from campus_sync.ui.worker import Worker
+from aulari import auth
+from aulari.app import CampusApp
+from aulari.texts import text
+from aulari.ui import url_handler
+from aulari.ui.login_handoff import HandoffServer
+from aulari.ui.messages import error_message
+from aulari.ui.worker import Worker
 
 PADDING = 12
 WRAP_PIXELS = 480

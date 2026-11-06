@@ -1,11 +1,11 @@
-"""Unit tests for campus_sync.registry, using temporary SQLite files."""
+"""Unit tests for aulari.registry, using temporary SQLite files."""
 
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
-from campus_sync.registry import (
+from aulari.registry import (
     STATE_MISSING,
     STATE_PRESENT,
     STATE_REMOVED,

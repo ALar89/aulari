@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.moodle_client, without network access."""
+"""Unit tests for aulari.moodle_client, without network access."""
 
 import hashlib
 import json
@@ -9,8 +9,8 @@ from pathlib import Path
 
 import requests
 
-from campus_sync import moodle_client
-from campus_sync.moodle_client import InvalidTokenError, MoodleClient, MoodleError
+from aulari import moodle_client
+from aulari.moodle_client import InvalidTokenError, MoodleClient, MoodleError
 
 SITE = "https://moodle.example.test/2026-27"
 TOKEN = "0123456789abcdef0123456789abcdef"
@@ -106,7 +106,7 @@ class CallTests(unittest.TestCase):
         self.assertEqual(call["url"], SITE + "/webservice/rest/server.php")
         self.assertNotIn(TOKEN, call["url"])
         self.assertEqual(call["data"]["wstoken"], TOKEN)
-        self.assertTrue(session.headers["User-Agent"].startswith("CampusSync/"))
+        self.assertTrue(session.headers["User-Agent"].startswith("Aulari/"))
 
     def test_params_are_sent(self) -> None:
         """Array parameters use Moodle's name[index] format."""
@@ -162,7 +162,7 @@ class RetryTests(unittest.TestCase):
     def test_logs_do_not_contain_token(self) -> None:
         """The client itself never logs the token, even before redaction."""
         client, _, _ = make_client([FakeResponse(503, b""), json_response([])])
-        with self.assertLogs("campus_sync.moodle_client", level=logging.DEBUG) as logs:
+        with self.assertLogs("aulari.moodle_client", level=logging.DEBUG) as logs:
             client.call("core_enrol_get_users_courses", {"userid": 1})
         output = "\n".join(logs.output)
         self.assertIn("HTTP 503", output)

@@ -1,7 +1,7 @@
 """Orchestrate a sync run: courses -> items -> disk + registry (RF5-RF11).
 
 One run:
-1. takes the lock file (<destination>/.campus-sync/sync.lock);
+1. takes the lock file (<destination>/.aulari/sync.lock);
 2. checks that this machine owns the destination (owner.json, decision D2);
 3. removes leftover temporary files;
 4. for each course: gets contents and assignments, and processes every
@@ -27,18 +27,18 @@ from typing import Self
 
 import requests
 
-from campus_sync import downloader, organizer
-from campus_sync.downloader import DownloadError
-from campus_sync.moodle_client import InvalidTokenError, MoodleClient, MoodleError, array_param
-from campus_sync.moodle_items import (
+from aulari import downloader, organizer
+from aulari.downloader import DownloadError
+from aulari.moodle_client import InvalidTokenError, MoodleClient, MoodleError, array_param
+from aulari.moodle_items import (
     KIND_URL,
     SyncItem,
     items_from_assignments,
     items_from_contents,
 )
-from campus_sync.registry import STATE_MISSING, STATE_PRESENT, FileStatus, Registry
+from aulari.registry import STATE_MISSING, STATE_PRESENT, FileStatus, Registry
 
-CONTROL_DIR_NAME = ".campus-sync"
+CONTROL_DIR_NAME = ".aulari"
 LOCK_NAME = "sync.lock"
 OWNER_NAME = "owner.json"
 MACHINE_ID_NAME = "machine_id"
@@ -124,7 +124,7 @@ def _owner_path(destination: Path) -> Path:
 
 
 def _ensure_control_dir(destination: Path) -> None:
-    """Create <destination>/.campus-sync if needed and keep it hidden on Windows."""
+    """Create <destination>/.aulari if needed and keep it hidden on Windows."""
     control_dir = destination / CONTROL_DIR_NAME
     control_dir.mkdir(parents=True, exist_ok=True)
     downloader.mark_hidden(control_dir)

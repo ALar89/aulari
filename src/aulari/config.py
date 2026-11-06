@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from campus_sync import organizer
+from aulari import organizer
 
 CONFIG_NAME = "config.json"
 DEFAULT_HOST = "https://e-aules.uab.cat"

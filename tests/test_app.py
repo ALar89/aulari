@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.app with a fake Moodle and an in-memory keyring."""
+"""Unit tests for aulari.app with a fake Moodle and an in-memory keyring."""
 
 import base64
 import hashlib
@@ -9,9 +9,9 @@ from pathlib import Path
 import keyring
 from keyring.backend import KeyringBackend
 
-from campus_sync import auth
-from campus_sync.app import AppError, CampusApp
-from campus_sync.sync import NotOwnerError, take_over_ownership
+from aulari import auth
+from aulari.app import AppError, CampusApp
+from aulari.sync import NotOwnerError, take_over_ownership
 
 SITE = "https://moodle.example.test/2026-27"
 TOKEN = "0123456789abcdef0123456789abcdef"

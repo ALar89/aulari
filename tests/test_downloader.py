@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.downloader, using temporary folders and a fake client."""
+"""Unit tests for aulari.downloader, using temporary folders and a fake client."""
 
 import hashlib
 import os
@@ -8,10 +8,10 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
-from campus_sync import downloader
-from campus_sync.downloader import DownloadError
-from campus_sync.moodle_items import KIND_FILE, KIND_URL, SectionInfo, SyncItem
-from campus_sync.registry import FileKey
+from aulari import downloader
+from aulari.downloader import DownloadError
+from aulari.moodle_items import KIND_FILE, KIND_URL, SectionInfo, SyncItem
+from aulari.registry import FileKey
 
 ITEM_SIZE = 5  # bytes Moodle reports for every test item
 SECTION = SectionInfo(section_id=901, number=1, name="Tema 1")

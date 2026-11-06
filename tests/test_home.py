@@ -6,13 +6,13 @@ import unittest
 from pathlib import Path
 from tkinter import ttk
 
-from campus_sync.app import CourseChoice, SyncResult
-from campus_sync.config import Settings
-from campus_sync.sync import Progress, SyncSummary
-from campus_sync.texts import text
-from campus_sync.ui import summary
-from campus_sync.ui.home_frame import HomeFrame
-from campus_sync.ui.worker import Worker
+from aulari.app import CourseChoice, SyncResult
+from aulari.config import Settings
+from aulari.sync import Progress, SyncSummary
+from aulari.texts import text
+from aulari.ui import summary
+from aulari.ui.home_frame import HomeFrame
+from aulari.ui.worker import Worker
 
 TOKEN = "0123456789abcdef0123456789abcdef"
 CHOICES = [

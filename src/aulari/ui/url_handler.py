@@ -22,7 +22,7 @@ SCHEME = "moodlemobile"
 CLASSES_PATH = r"Software\Classes"
 CALLBACK_FLAG = "--login-callback"
 BACKUP_NAME = "url_handler_backup.json"
-HANDLER_NAME = "URL:Campus Sync login"
+HANDLER_NAME = "URL:Aulari login"
 URL_PROTOCOL_VALUE = "URL Protocol"
 COMMAND_SUBKEY = r"shell\open\command"
 
@@ -57,7 +57,7 @@ def handler_command() -> str:
         python = Path(sys.executable)
         windowed = python.with_name("pythonw.exe")
         interpreter = windowed if windowed.is_file() else python
-        result = f'"{interpreter}" -m campus_sync {CALLBACK_FLAG} "%1"'
+        result = f'"{interpreter}" -m aulari {CALLBACK_FLAG} "%1"'
     return result
 
 

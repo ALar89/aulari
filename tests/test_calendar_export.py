@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.calendar_export (no network)."""
+"""Unit tests for aulari.calendar_export (no network)."""
 
 import sqlite3
 import tempfile
@@ -6,9 +6,9 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-from campus_sync import calendar_export
-from campus_sync.calendar_export import CalendarEvent, CalendarRequest, IcsOptions
-from campus_sync.registry import Registry
+from aulari import calendar_export
+from aulari.calendar_export import CalendarEvent, CalendarRequest, IcsOptions
+from aulari.registry import Registry
 
 NOW = datetime(2026, 11, 6, 18, 0, tzinfo=UTC)
 DUE = int(datetime(2026, 11, 9, 22, 59, tzinfo=UTC).timestamp())
@@ -87,7 +87,7 @@ class BuildIcsTests(unittest.TestCase):
         self.assertTrue(ics.endswith("END:VCALENDAR\r\n"))
         self.assertNotIn("\n", ics.replace("\r\n", ""))
         lines = unfold(ics)
-        self.assertIn("PRODID:-//CampusSync//CampusSync 0.1.0//EN", lines)
+        self.assertIn("PRODID:-//Aulari//Aulari 0.1.0//EN", lines)
         self.assertIn("X-WR-CALNAME:Campus 2026-27", lines)
 
     def test_event_without_duration_has_no_dtend(self) -> None:

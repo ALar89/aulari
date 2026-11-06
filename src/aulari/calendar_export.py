@@ -18,16 +18,16 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
-from campus_sync import __version__
-from campus_sync.moodle_client import MoodleClient, array_param
-from campus_sync.registry import Registry
+from aulari import __version__
+from aulari.moodle_client import MoodleClient, array_param
+from aulari.registry import Registry
 
 CALENDAR_FILENAME = "calendari.ics"
 DAYS_BEFORE = 30
 DAYS_AFTER = 365
 MAX_LINE_OCTETS = 75
 CRLF = "\r\n"
-PRODID = f"-//CampusSync//CampusSync {__version__}//EN"
+PRODID = f"-//Aulari//Aulari {__version__}//EN"
 UTC_FORMAT = "%Y%m%dT%H%M%SZ"
 _TAG = re.compile(r"<[^>]+>")
 _SPACES = re.compile(r"\s+")

@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.moodle_items, with synthetic Moodle responses.
+"""Unit tests for aulari.moodle_items, with synthetic Moodle responses.
 
 The structure mirrors what e-aules returned in phase 1 (design.md section 10);
 names and ids are invented.
@@ -6,8 +6,8 @@ names and ids are invented.
 
 import unittest
 
-from campus_sync import moodle_items
-from campus_sync.moodle_items import KIND_FILE, KIND_URL
+from aulari import moodle_items
+from aulari.moodle_items import KIND_FILE, KIND_URL
 
 BASE = "https://moodle.example.test/2026-27/webservice/pluginfile.php"
 

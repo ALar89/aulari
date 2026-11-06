@@ -7,7 +7,7 @@ Reads the token stored by browser_login.py from the keyring and calls:
 - core_calendar_get_calendar_export_token (decision D3)
 
 Only summaries are printed. Full responses are saved, with secrets
-replaced by '***', to %LOCALAPPDATA%\\campus-sync\\recordings\\.
+replaced by '***', to %LOCALAPPDATA%\\aulari\\recordings\\.
 
 Usage (PowerShell, venv active, from the project folder):
     python poc\\explore_api.py https://<moodle-site-url> <userid>
@@ -28,7 +28,7 @@ import keyring.errors
 import requests
 from moodle_ws import KEYRING_SERVICE, MoodleError, call_function, keyring_username
 
-from campus_sync.log_filter import REDACTED, configure_logging, redact
+from aulari.log_filter import REDACTED, configure_logging, redact
 
 EXPECTED_ARGS = 3  # script name + site URL + user id
 # Keys whose values are secrets and must never reach a recording.
@@ -64,7 +64,7 @@ def save_recording(site_url: str, function: str, data: object) -> Path:
     """
     parsed = urlparse(site_url)
     site_label = f"{parsed.hostname}{parsed.path}".replace("/", "_")
-    folder = Path(os.environ["LOCALAPPDATA"]) / "campus-sync" / "recordings"
+    folder = Path(os.environ["LOCALAPPDATA"]) / "aulari" / "recordings"
     folder.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     result = folder / f"{site_label}_{function}_{stamp}.json"

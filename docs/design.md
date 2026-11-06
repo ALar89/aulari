@@ -1,4 +1,4 @@
-# Campus Sync for Moodle: documento de diseño
+# Aulari: documento de diseño
 
 Versión 2, revisada tras una auditoría crítica (viabilidad de la API, seguridad y legal, casos límite, instrucciones para Claude Code).
 
@@ -69,17 +69,17 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 6. Registro local (SQLite)
 
-- **Ubicación:** carpeta de datos de la app (`%LOCALAPPDATA%\campus-sync\`), **nunca** dentro del destino sincronizado. Un SQLite en una carpeta de nube se corrompe.
+- **Ubicación:** carpeta de datos de la app (`%LOCALAPPDATA%\aulari\`), **nunca** dentro del destino sincronizado. Un SQLite en una carpeta de nube se corrompe.
 - **Clave de un archivo:** `(site_url, user_id, cmid, filearea, filepath, filename)`. Ni `fileurl` (cambia con `revision`) ni el ID del archivo (cambia al volver a subirlo) son estables, y la API no devuelve `contenthash`.
 - **Versión nueva:** cambia `timemodified` **o** `filesize`. Si tras descargar a temporal el SHA-256 coincide con el anterior, no se crea versión: solo se actualiza la fecha.
 - **Campos:** ruta **relativa al destino**, `timemodified`, `filesize`, `sha256`, estado (`present`, `missing`, `removed_in_moodle`).
 - **Secciones:** tabla `section_id → nombre de carpeta`, fijado al crearla. Si el profesor renombra o reordena secciones, o mueve un archivo de sección, no se mueve nada en el disco.
 - **Versión nueva de un archivo que el usuario movió o borró:** siempre se descarga; va junto a la ruta registrada si existe y, si no, a la carpeta de su sección. Se destaca en el resumen.
 - **Eliminado u oculto en Moodle:** nunca se borra en local; estado `removed_in_moodle`.
-- **Atomicidad:** descargar a `<destino>\.campus-sync-tmp\` (mismo volumen), comprobar tamaño, mover con creación exclusiva y después confirmar en el registro. Al arrancar, un archivo en la ruta esperada sin registro y con el mismo tamaño se adopta.
+- **Atomicidad:** descargar a `<destino>\.aulari-tmp\` (mismo volumen), comprobar tamaño, mover con creación exclusiva y después confirmar en el registro. Al arrancar, un archivo en la ruta esperada sin registro y con el mismo tamaño se adopta.
 - **Archivos solo en la nube** (placeholders de Proton u OneDrive): la app solo comprueba si existen; nunca lee su contenido.
 - **Bloqueo:** un archivo de bloqueo impide dos instancias a la vez. Un archivo abierto por otro programa es un error de ese archivo y se reintenta en la próxima sincronización.
-- **Equipo propietario (D2):** `<destino>\.campus-sync\owner.json` con el ID de la máquina. Otra instancia que lo encuentre se niega a sincronizar y ofrece "tomar el relevo".
+- **Equipo propietario (D2):** `<destino>\.aulari\owner.json` con el ID de la máquina. Otra instancia que lo encuentre se niega a sincronizar y ofrece "tomar el relevo".
 
 ## 7. API de Moodle
 

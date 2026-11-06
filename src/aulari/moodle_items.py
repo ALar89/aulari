@@ -16,7 +16,7 @@ What is skipped: modules with uservisible = false, the HTML of pages,
 from dataclasses import dataclass
 from urllib.parse import unquote, urlparse
 
-from campus_sync.registry import FileKey
+from aulari.registry import FileKey
 
 KIND_FILE = "file"
 KIND_URL = "url"

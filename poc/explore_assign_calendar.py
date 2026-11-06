@@ -7,7 +7,7 @@ Reads the token from the keyring and calls:
 - mod_assign_get_assignments for one course you choose
 
 Only summaries are printed. Full responses are saved, with secrets
-replaced by '***', to %LOCALAPPDATA%\\campus-sync\\recordings\\.
+replaced by '***', to %LOCALAPPDATA%\\aulari\\recordings\\.
 
 Usage (PowerShell, venv active, from the project folder):
     python poc\\explore_assign_calendar.py https://<moodle-site-url> <userid>
@@ -23,7 +23,7 @@ import keyring.errors
 from explore_api import ask_course_id, format_timestamp, run_step, save_recording
 from moodle_ws import KEYRING_SERVICE, call_function, keyring_username
 
-from campus_sync.log_filter import configure_logging
+from aulari.log_filter import configure_logging
 
 EXPECTED_ARGS = 3  # script name + site URL + user id
 DAYS_BEFORE = 30

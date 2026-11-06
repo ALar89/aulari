@@ -20,9 +20,9 @@ from urllib.parse import unquote, urlencode, urlparse
 
 import keyring
 
-from campus_sync.moodle_client import MoodleClient
+from aulari.moodle_client import MoodleClient
 
-KEYRING_SERVICE = "campus-sync"
+KEYRING_SERVICE = "aulari"
 MOBILE_SERVICE = "moodle_mobile_app"
 URL_SCHEME = "moodlemobile"
 TOKEN_MARKER = "token="

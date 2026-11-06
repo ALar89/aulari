@@ -1,7 +1,7 @@
 """Tests for the automatic login: URL handler registration and the local handoff.
 
 The registry tests never touch the real moodlemobile:// handler: they use
-HKCU\\Software\\CampusSyncTest\\<random>, which no browser reads, and delete it.
+HKCU\\Software\\AulariTest\\<random>, which no browser reads, and delete it.
 """
 
 import json
@@ -12,9 +12,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from campus_sync.ui import login_handoff, url_handler
-from campus_sync.ui.login_handoff import HandoffServer
-from campus_sync.ui.url_handler import Handler
+from aulari.ui import login_handoff, url_handler
+from aulari.ui.login_handoff import HandoffServer
+from aulari.ui.url_handler import Handler
 
 if sys.platform == "win32":
     import winreg
@@ -29,14 +29,14 @@ class UrlHandlerTests(unittest.TestCase):
 
     def setUp(self) -> None:
         """Create an empty test base key and an app folder."""
-        self.base = f"Software\\CampusSyncTest\\{secrets.token_hex(4)}"
+        self.base = f"Software\\AulariTest\\{secrets.token_hex(4)}"
         winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.base).Close()
         self.folder = tempfile.TemporaryDirectory()
         self.app_dir = Path(self.folder.name)
 
     def tearDown(self) -> None:
         """Delete the whole test key and the app folder."""
-        url_handler._delete_tree("Software\\CampusSyncTest")
+        url_handler._delete_tree("Software\\AulariTest")
         self.folder.cleanup()
 
     def test_register_and_unregister_without_previous_handler(self) -> None:
@@ -82,7 +82,7 @@ class HandlerCommandTests(unittest.TestCase):
     def test_command_runs_this_package_with_the_flag(self) -> None:
         """The command passes the link as one quoted argument."""
         command = url_handler.handler_command()
-        self.assertIn("-m campus_sync --login-callback", command)
+        self.assertIn("-m aulari --login-callback", command)
         self.assertTrue(command.endswith('"%1"'))
 
     def test_is_ours(self) -> None:

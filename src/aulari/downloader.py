@@ -2,7 +2,7 @@
 
 - Paths: every component is sanitized and the final path must stay inside
   the destination; total length is limited to MAX_PATH_LENGTH.
-- Atomic download: write to <destination>/.campus-sync-tmp/, check the size,
+- Atomic download: write to <destination>/.aulari-tmp/, check the size,
   then move to the final name without ever overwriting an existing file.
 - Mark-of-the-Web: downloads get a Zone.Identifier stream (Windows, NTFS)
   so that Office opens them in Protected View.
@@ -20,11 +20,11 @@ import sys
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
-from campus_sync import organizer
-from campus_sync.moodle_client import MoodleClient
-from campus_sync.moodle_items import KIND_URL, SyncItem
+from aulari import organizer
+from aulari.moodle_client import MoodleClient
+from aulari.moodle_items import KIND_URL, SyncItem
 
-TEMP_DIR_NAME = ".campus-sync-tmp"
+TEMP_DIR_NAME = ".aulari-tmp"
 TEMP_SUFFIX = ".part"
 MAX_PATH_LENGTH = 240
 MIN_FILENAME_LENGTH = 20

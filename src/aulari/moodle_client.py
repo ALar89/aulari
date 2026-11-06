@@ -17,9 +17,9 @@ from urllib.parse import urlparse
 
 import requests
 
-from campus_sync import PROJECT_URL, __version__
+from aulari import PROJECT_URL, __version__
 
-USER_AGENT = f"CampusSync/{__version__} (+{PROJECT_URL})"
+USER_AGENT = f"Aulari/{__version__} (+{PROJECT_URL})"
 TIMEOUT_SECONDS = 30
 MAX_ATTEMPTS = 4
 BASE_DELAY_SECONDS = 1

@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.sync: whole sync runs with a fake Moodle."""
+"""Unit tests for aulari.sync: whole sync runs with a fake Moodle."""
 
 import hashlib
 import os
@@ -12,10 +12,10 @@ from pathlib import Path
 
 import requests
 
-from campus_sync import sync
-from campus_sync.moodle_client import InvalidTokenError
-from campus_sync.registry import STATE_MISSING, STATE_REMOVED, Registry
-from campus_sync.sync import Course, NotOwnerError, SyncLockedError, SyncTarget
+from aulari import sync
+from aulari.moodle_client import InvalidTokenError
+from aulari.registry import STATE_MISSING, STATE_REMOVED, Registry
+from aulari.sync import Course, NotOwnerError, SyncLockedError, SyncTarget
 
 SITE = "https://moodle.example.test/2026-27"
 BASE = SITE + "/webservice/pluginfile.php"
@@ -135,7 +135,7 @@ class SyncTestCase(unittest.TestCase):
         return sorted(
             path.relative_to(self.destination).as_posix()
             for path in self.destination.rglob("*")
-            if path.is_file() and ".campus-sync" not in path.parts
+            if path.is_file() and ".aulari" not in path.parts
         )
 
 
@@ -273,7 +273,7 @@ class RobustnessTests(SyncTestCase):
         summary = self.run_sync()
         self.assertTrue(summary.invalid_token)
         self.assertEqual(self.files(), [])
-        self.assertFalse((self.destination / ".campus-sync" / "sync.lock").exists())
+        self.assertFalse((self.destination / ".aulari" / "sync.lock").exists())
 
     def test_cancel_stops_between_files(self) -> None:
         """A cancel request before the first file stops the run and skips removal marks."""
@@ -293,15 +293,15 @@ class RobustnessTests(SyncTestCase):
         sync.take_over_ownership(self.destination, "machine-b")
         with self.assertRaises(NotOwnerError):
             self.run_sync()
-        self.assertFalse((self.destination / ".campus-sync" / "sync.lock").exists())
+        self.assertFalse((self.destination / ".aulari" / "sync.lock").exists())
         sync.take_over_ownership(self.destination, MACHINE)
         self.assertEqual(self.run_sync().new, 3)
 
     def test_temp_folder_is_removed_and_control_folder_hidden(self) -> None:
-        """After a sync no empty temp folder is left; .campus-sync is hidden on Windows."""
+        """After a sync no empty temp folder is left; .aulari is hidden on Windows."""
         self.run_sync()
         self.assertFalse((self.destination / sync.downloader.TEMP_DIR_NAME).exists())
-        control = self.destination / ".campus-sync"
+        control = self.destination / ".aulari"
         self.assertTrue(control.is_dir())
         if sys.platform == "win32":
             attributes = os.stat(control).st_file_attributes

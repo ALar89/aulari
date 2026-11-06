@@ -7,11 +7,11 @@ everything shown also passes through log_filter.redact() as a last guard.
 import keyring.errors
 import requests
 
-from campus_sync.app import AppError
-from campus_sync.log_filter import redact
-from campus_sync.moodle_client import InvalidTokenError, MoodleError
-from campus_sync.sync import NotOwnerError, SyncLockedError
-from campus_sync.texts import text
+from aulari.app import AppError
+from aulari.log_filter import redact
+from aulari.moodle_client import InvalidTokenError, MoodleError
+from aulari.sync import NotOwnerError, SyncLockedError
+from aulari.texts import text
 
 
 def error_message(error: Exception) -> str:

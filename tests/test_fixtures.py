@@ -11,7 +11,7 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from campus_sync import moodle_items
+from aulari import moodle_items
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 # Numbers verified with the real sync of this course (design.md section 10).

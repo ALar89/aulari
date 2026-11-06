@@ -13,13 +13,13 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import keyring.errors
 
-from campus_sync.app import AppError, CampusApp, CourseChoice, SyncResult
-from campus_sync.moodle_client import InvalidTokenError
-from campus_sync.sync import NotOwnerError, Progress
-from campus_sync.texts import text
-from campus_sync.ui.messages import error_message
-from campus_sync.ui.summary import course_label, progress_text, summary_text
-from campus_sync.ui.worker import Worker
+from aulari.app import AppError, CampusApp, CourseChoice, SyncResult
+from aulari.moodle_client import InvalidTokenError
+from aulari.sync import NotOwnerError, Progress
+from aulari.texts import text
+from aulari.ui.messages import error_message
+from aulari.ui.summary import course_label, progress_text, summary_text
+from aulari.ui.worker import Worker
 
 PADDING = 12
 WRAP_PIXELS = 520

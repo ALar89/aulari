@@ -14,12 +14,12 @@ from pathlib import Path, PurePosixPath
 
 import requests
 
-from campus_sync import auth, organizer
-from campus_sync.calendar_export import CalendarRequest, export_calendar
-from campus_sync.config import Settings, load_settings, save_settings
-from campus_sync.moodle_client import MoodleClient, MoodleError
-from campus_sync.registry import Registry
-from campus_sync.sync import (
+from aulari import auth, organizer
+from aulari.calendar_export import CalendarRequest, export_calendar
+from aulari.config import Settings, load_settings, save_settings
+from aulari.moodle_client import MoodleClient, MoodleError
+from aulari.registry import Registry
+from aulari.sync import (
     Course,
     Progress,
     Syncer,
@@ -34,7 +34,7 @@ REGISTRY_NAME = "registry.sqlite3"
 
 
 class AppError(Exception):
-    """A problem the user can fix; key is a text key of campus_sync/strings."""
+    """A problem the user can fix; key is a text key of aulari/strings."""
 
     def __init__(self, key: str) -> None:
         """Keep the text key so the interface can show the translated message."""

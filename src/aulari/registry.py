@@ -1,6 +1,6 @@
 """Local SQLite registry of what was downloaded (docs/design.md section 6).
 
-The database lives in the app data folder (%LOCALAPPDATA%\\campus-sync\\),
+The database lives in the app data folder (%LOCALAPPDATA%\\aulari\\),
 never inside the synced destination. Paths are stored relative to the
 destination, with '/' separators.
 

@@ -15,10 +15,10 @@ from collections.abc import Callable
 import keyring.errors
 import requests
 
-from campus_sync.app import AppError
-from campus_sync.moodle_client import MoodleError
-from campus_sync.registry import RegistryError
-from campus_sync.sync import NotOwnerError, SyncLockedError
+from aulari.app import AppError
+from aulari.moodle_client import MoodleError
+from aulari.registry import RegistryError
+from aulari.sync import NotOwnerError, SyncLockedError
 
 POLL_MS = 100
 MESSAGE_DONE = "done"

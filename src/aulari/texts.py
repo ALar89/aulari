@@ -1,4 +1,4 @@
-"""User interface texts, loaded from campus_sync/strings/<language>.json.
+"""User interface texts, loaded from aulari/strings/<language>.json.
 
 The core and the interface never hard-code user-facing sentences: they ask
 text(key, **values). Spanish first (design.md section 9); Catalan and
@@ -19,7 +19,7 @@ def load_strings(language: str = DEFAULT_LANGUAGE) -> dict[str, str]:
     json.JSONDecodeError if it is corrupt.
     """
     if language not in _cache:
-        source = resources.files("campus_sync") / "strings" / f"{language}.json"
+        source = resources.files("aulari") / "strings" / f"{language}.json"
         with source.open(encoding="utf-8") as strings_file:
             _cache[language] = json.load(strings_file)
     result = _cache[language]

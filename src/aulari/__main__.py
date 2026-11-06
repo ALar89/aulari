@@ -1,4 +1,4 @@
-"""Entry point: 'python -m campus_sync'.
+"""Entry point: 'python -m aulari'.
 
 With '--login-callback <url>' (started by Windows for a moodlemobile:// link)
 it only hands the URL to the window that is waiting, and exits. The URL is
@@ -10,10 +10,10 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 
-from campus_sync.texts import text
-from campus_sync.ui.login_handoff import send_to_running_app
-from campus_sync.ui.main import default_app_dir, run
-from campus_sync.ui.url_handler import CALLBACK_FLAG
+from aulari.texts import text
+from aulari.ui.login_handoff import send_to_running_app
+from aulari.ui.main import default_app_dir, run
+from aulari.ui.url_handler import CALLBACK_FLAG
 
 CALLBACK_ARGS = 3  # program + flag + URL
 

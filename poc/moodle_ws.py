@@ -8,9 +8,9 @@ from urllib.parse import urlparse
 
 import requests
 
-USER_AGENT = "CampusSync/0.1.0-poc (+https://github.com/TODO/campus-sync)"
+USER_AGENT = "Aulari/0.1.0-poc (+https://github.com/TODO/aulari)"
 TIMEOUT_SECONDS = 30
-KEYRING_SERVICE = "campus-sync"
+KEYRING_SERVICE = "aulari"
 
 # Only these read-only web service functions may be called (design.md section 7).
 ALLOWED_FUNCTIONS = {
