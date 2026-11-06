@@ -184,6 +184,14 @@ class Registry:
         result = dict(row)
         return result
 
+    def course_folders(self, site_id: int) -> dict[int, str]:
+        """Return {course_id: folder} for every registered course of a site."""
+        rows = self._conn.execute(
+            "SELECT course_id, folder FROM courses WHERE site_id = ?", (site_id,)
+        ).fetchall()
+        result = {row["course_id"]: row["folder"] for row in rows}
+        return result
+
     def rename_course_folder(
         self, site_id: int, course_id: int, new_alias: str, new_folder: str
     ) -> None:
