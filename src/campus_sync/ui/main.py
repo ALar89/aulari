@@ -44,6 +44,7 @@ class MainWindow:
         self._worker = Worker(root)
         self._frame = None
         self._remove_leftover_handler()
+        self._first_run_notice()
         logged_in = False
         try:
             logged_in = app.is_logged_in()
@@ -53,6 +54,15 @@ class MainWindow:
             self.show_home()
         else:
             self.show_login()
+
+    def _first_run_notice(self) -> None:
+        """Show once that the material is for personal use only (RF12)."""
+        if not self._app.settings.first_run_notice_seen:
+            messagebox.showinfo(text("app_title"), text("first_run_notice"), parent=self._root)
+            try:
+                self._app.accept_first_run_notice()
+            except OSError as error:
+                logging.getLogger(__name__).warning("Could not save settings: %s", error)
 
     def _remove_leftover_handler(self) -> None:
         """Remove a moodlemobile:// registration left by a closed or crashed login."""
