@@ -193,6 +193,15 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - Cambio de alias (RF4): `SO` → `SO-Renombrada` mueve la carpeta y la siguiente sincronización la encuentra.
 - «Recuperar borrados» (RF8): con un archivo borrado a mano, resumen con 1 recuperado y 33 sin cambios.
 
+### Ampliación: avisos, entregas y notas (verificado el 2026-11-06, `poc/explore_extras.py`)
+
+Todas las funciones responden a un estudiante en e-aules:
+- `mod_forum_get_forums_by_courses`: 15 foros visibles, 9 de tipo `news` (uno por asignatura). `mod_forum_get_forum_discussions`: devuelve `id`, `name`/`subject`, `message` (HTML), `timemodified`, `created`, `pinned`, `numunread`, `userfullname`… (RF16).
+- `mod_assign_get_submission_status` (por `assignid`, no `cmid`): `lastattempt.submission.status` (`submitted`…), `feedback.gradefordisplay` cuando hay nota; sin `feedback` si aún no está corregida (RF17).
+- `gradereport_overview_get_course_grades`: 8 cursos con `courseid`, `grade`, `rawgrade`; 3 con nota (RF18).
+- `gradereport_user_get_grade_items` (una asignatura): 23 ítems con `itemname`, `gradeformatted`, `rangeformatted`, `percentageformatted`, `feedback`, `gradeishidden`… (RF18).
+- Las respuestas contienen datos personales (notas, nombres): solo se guardan en local y nunca se registran en el log.
+
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 
 - En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
