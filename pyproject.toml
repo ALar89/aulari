@@ -10,7 +10,7 @@ description = "Download and organize course material from a Moodle site"
 requires-python = ">=3.14"
 license = "MIT"
 # Exact pinned versions live in requirements.txt.
-dependencies = ["requests", "keyring"]
+dependencies = ["requests", "keyring", "tzdata"]
 
 [tool.ruff]
 line-length = 100

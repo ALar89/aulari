@@ -1,4 +1,4 @@
-# Runtime dependencies, pinned (direct: requests, keyring; the rest are transitive).
+# Runtime dependencies, pinned (direct: requests, keyring, tzdata; the rest are transitive).
 certifi==2026.10.23
 charset-normalizer==3.5.2
 idna==3.20
@@ -9,4 +9,5 @@ keyring==25.7.0
 more-itertools==11.2.1
 pywin32-ctypes==0.2.3
 requests==2.34.2
+tzdata==2026.6
 urllib3==2.8.0
