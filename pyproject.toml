@@ -19,4 +19,4 @@ target-version = "py314"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET", "PL", "C4"]
 # Rules that contradict the project's structured style (CLAUDE.md section 3).
-ignore = ["RET501", "RET502", "RET503", "RET504", "RET505", "SIM110", "PLR1714", "C4"]
+ignore = ["RET501", "RET502", "RET503", "RET504", "RET505", "SIM108", "SIM110", "PLR1714", "C4"]
