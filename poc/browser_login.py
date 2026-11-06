@@ -21,7 +21,6 @@ import hashlib
 import logging
 import secrets
 import sys
-from pathlib import Path
 from urllib.parse import unquote, urlencode
 
 import keyring
@@ -29,10 +28,7 @@ import keyring.errors
 import requests
 from moodle_ws import KEYRING_SERVICE, MoodleError, call_function, keyring_username
 
-# Temporary until the package is installable: make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
-from campus_sync.log_filter import configure_logging  # noqa: E402
+from campus_sync.log_filter import configure_logging
 
 EXPECTED_ARGS = 2  # script name + site URL
 MOBILE_SERVICE = "moodle_mobile_app"

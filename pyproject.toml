@@ -1,9 +1,16 @@
+[build-system]
+# Build backend only (pip downloads it for the install); not a runtime dependency.
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "campus-sync"
 version = "0.1.0"
 description = "Download and organize course material from a Moodle site"
 requires-python = ">=3.14"
 license = "MIT"
+# Exact pinned versions live in requirements.txt.
+dependencies = ["requests", "keyring"]
 
 [tool.ruff]
 line-length = 100
