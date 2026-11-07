@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import requests
 
-USER_AGENT = "Aulari/0.1.0-poc (+https://github.com/TODO/aulari)"
+USER_AGENT = "Aulari/0.1.0-poc (+https://github.com/ALar89/aulari)"
 TIMEOUT_SECONDS = 30
 KEYRING_SERVICE = "aulari"
 

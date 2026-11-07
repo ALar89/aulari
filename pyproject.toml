@@ -12,6 +12,10 @@ license = "MIT"
 # Exact pinned versions live in requirements.txt.
 dependencies = ["requests", "keyring", "tzdata"]
 
+[project.urls]
+Homepage = "https://github.com/ALar89/aulari"
+Issues = "https://github.com/ALar89/aulari/issues"
+
 [tool.setuptools.package-data]
 # UI texts are data files inside the package.
 aulari = ["strings/*.json"]

@@ -28,7 +28,7 @@ Aulari es una aplicación de escritorio para estudiantes. Descarga los archivos 
 ## Instalación (desde el código fuente)
 
 ```powershell
-git clone <URL del repositorio>
+git clone https://github.com/ALar89/aulari.git
 cd aulari
 py -3.14 -m venv .venv
 .venv\Scripts\Activate.ps1

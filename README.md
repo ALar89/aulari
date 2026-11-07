@@ -28,7 +28,7 @@ Aulari is a desktop app for students. It downloads the files of your courses fro
 ## Installation (from source)
 
 ```powershell
-git clone <repository URL>
+git clone https://github.com/ALar89/aulari.git
 cd aulari
 py -3.14 -m venv .venv
 .venv\Scripts\Activate.ps1
