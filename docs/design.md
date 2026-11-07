@@ -213,6 +213,12 @@ Todas las funciones responden a un estudiante en e-aules:
 - Probado por el usuario: la ventana abre sin consola, la sesión guardada en el keyring sigue válida, el inicio de sesión muestra «Open Aulari?» gracias al recurso de versión (`packaging/version_info.txt`) y la sincronización funciona.
 - Dependencias fijadas con hashes (`requirements*.txt` generados con pip-tools); un entorno limpio instala con `--require-hashes`.
 
+### Fase 5: primera versión pública (2026-11-07)
+
+- Repositorio público: https://github.com/ALar89/aulari. Etiqueta `v0.1.0` → flujo Release en verde (≈2 min): `Aulari-v0.1.0-windows.zip` (18 MB) y su `.sha256` (`a9ca1071…a24d3a`), con atestación de procedencia comprobada en la API de GitHub.
+- Dependabot propuso subir `actions/checkout` y `actions/setup-python` a v7 y `attest-build-provenance` a v4; aceptadas. Las tres tocaban `ci.yml` y `release.yml`, así que tras la primera hubo que pedir `@dependabot rebase`. La atestación con v4 se comprobará en la próxima versión.
+- Pendiente: solicitar la firma de código a SignPath Foundation.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
