@@ -462,5 +462,49 @@ class SitesTests(AppTestCase):
         self.assertEqual(self.app.settings.user_id, 42)
 
 
+class SyncAllTests(AppTestCase):
+    """run_sync_all(): every academic year, one after another."""
+
+    def setUp(self) -> None:
+        """2026-27 logged in with SO selected, plus 2025-26 and 2024-25 saved."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([1072])
+        self.app.set_destination(self.destination)
+        self.old = "https://moodle.example.test/2025-26"
+        self.app.add_site(self.old)
+        auth.store_token(self.old, 42, TOKEN)
+        self.app.settings.user_id = 42
+        self.app.set_selection([472])
+        self.empty = "https://moodle.example.test/2024-25"
+        self.app.add_site(self.empty)
+        self.app.switch_site(SITE)
+
+    def test_every_site_is_synced_and_active_site_restored(self) -> None:
+        """Each site with a session and courses is synced into its own year folder."""
+        results = {item.site_url: item for item in self.app.run_sync_all()}
+        self.assertEqual(results[SITE].result.summary.new, 1)
+        self.assertEqual(results[self.old].result.summary.new, 1)
+        self.assertEqual(results[self.empty].skipped_key, "site_skipped_no_courses")
+        self.assertEqual(self.app.settings.site_url, SITE)
+        self.assertTrue((self.destination / "2026-27" / "SO").is_dir())
+        self.assertTrue((self.destination / "2025-26" / "EC").is_dir())
+
+    def test_new_courses_stay_new(self) -> None:
+        """Syncing every year does not mark new courses as already seen."""
+        FakeClient.enrolled = [*COURSES, {"id": 999, "fullname": "Xarxes [MO1]"}]
+        self.app.run_sync_all()
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertTrue(choices[999].is_new)
+
+    def test_site_without_session_is_skipped(self) -> None:
+        """A saved site whose token is gone is reported, not synced."""
+        auth.delete_token(self.old, 42)
+        results = {item.site_url: item for item in self.app.run_sync_all()}
+        self.assertEqual(results[self.old].skipped_key, "site_skipped_no_session")
+        self.assertIsNotNone(results[SITE].result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -115,7 +115,7 @@ aulari/
 │   ├── calendar_export.py  # calendar
 │   ├── config.py           # user settings (JSON, no secrets)
 │   ├── log_filter.py       # secret redaction
-│   ├── strings/es.json     # UI texts
+│   ├── strings/*.json      # UI texts (ca, es, en)
 │   └── ui/                 # Tkinter
 └── tests/
     ├── fixtures/           # anonymized API responses only

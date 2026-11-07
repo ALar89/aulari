@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
+import keyring.errors
 import requests
 
 from aulari import auth, calendar_export, extras, news, organizer
@@ -20,12 +21,14 @@ from aulari.calendar_export import CalendarRequest, export_calendar
 from aulari.config import Settings, load_settings, save_settings
 from aulari.moodle_client import MoodleClient, MoodleError
 from aulari.organizer import LOCAL_TIMEZONE
-from aulari.registry import Registry
+from aulari.registry import Registry, RegistryError
 from aulari.sync import (
     Course,
+    NotOwnerError,
     Progress,
     Syncer,
     SyncLock,
+    SyncLockedError,
     SyncSummary,
     SyncTarget,
     load_machine_id,
@@ -46,6 +49,16 @@ class Deadline:
     timestart: int
     course_alias: str
     name: str
+
+
+@dataclass(frozen=True)
+class SiteSyncResult:
+    """Outcome of one academic year in 'sync all': result, skip reason or error."""
+
+    site_url: str
+    result: SyncResult | None = None
+    skipped_key: str = ""  # text key when the site was skipped
+    error: Exception | None = None
 
 
 class AppError(Exception):
@@ -79,6 +92,19 @@ class SyncResult:
     news_path: Path | None = None  # Novedades.txt, if this sync changed anything (RF14)
     announcements: list[extras.Announcement] = field(default_factory=list)  # RF16
     announcements_error: str = ""
+
+
+# Errors that only stop one site in 'sync all'.
+SITE_ERRORS = (
+    AppError,
+    MoodleError,
+    requests.RequestException,
+    SyncLockedError,
+    NotOwnerError,
+    RegistryError,
+    keyring.errors.KeyringError,
+    OSError,
+)
 
 
 def _event_start(event: calendar_export.CalendarEvent) -> int:
@@ -234,6 +260,11 @@ class CampusApp:
         self.settings.selected_courses = sorted(course_ids)
         self.save()
 
+    def set_language_preference(self, language: str) -> None:
+        """Remember the interface language ('' = follow the system)."""
+        self.settings.language = language
+        self.save()
+
     def accept_first_run_notice(self) -> None:
         """Remember that the personal-use notice was shown (RF12)."""
         self.settings.first_run_notice_seen = True
@@ -313,6 +344,17 @@ class CampusApp:
 
         Raises: AppError, MoodleError, requests.RequestException, OSError.
         """
+        result = self._course_choices(remember=True)
+        return result
+
+    def _course_choices(self, remember: bool) -> list[CourseChoice]:
+        """Build the course list; remember=False leaves 'known courses' untouched.
+
+        Syncing every year in the background must not mark new courses as seen:
+        the user still has to see them tagged as new.
+
+        Raises: AppError, MoodleError, requests.RequestException, OSError.
+        """
         enrolled = self._fetch_courses()
         aliases = self.course_aliases()
         first_time = not self.settings.known_courses
@@ -331,8 +373,9 @@ class CampusApp:
                     aliases.get(course_id, ""),
                 )
             )
-        self.settings.known_courses = sorted(int(course["id"]) for course in enrolled)
-        self.save()
+        if remember:
+            self.settings.known_courses = sorted(int(course["id"]) for course in enrolled)
+            self.save()
         return result
 
     # --- folders and news ----------------------------------------------
@@ -545,6 +588,52 @@ class CampusApp:
                 self._export_calendar(client, registry, target, result)
                 self._check_announcements(client, registry, target, result)
         self._write_news(target, result)
+        return result
+
+    def run_sync_all(
+        self,
+        progress: Callable[[Progress], None] | None = None,
+        cancel: threading.Event | None = None,
+    ) -> list[SiteSyncResult]:
+        """Sync every saved academic year, one after another, then return to the active one.
+
+        Sites without a session or without selected courses are skipped; an
+        error in one site does not stop the others. Cancelling stops between
+        files and between sites.
+
+        Raises: OSError if the settings cannot be saved when switching sites.
+        """
+        original = self.settings.site_url
+        urls = self.sites()
+        results = []
+        index = 0
+        try:
+            while index < len(urls) and not (cancel is not None and cancel.is_set()):
+                self.switch_site(urls[index])
+                results.append(self._sync_active_site(progress, cancel))
+                index = index + 1
+        finally:
+            self.switch_site(original)
+        return results
+
+    def _sync_active_site(
+        self,
+        progress: Callable[[Progress], None] | None,
+        cancel: threading.Event | None,
+    ) -> SiteSyncResult:
+        """Sync the active site for run_sync_all(), turning errors into a result."""
+        site_url = self.settings.site_url
+        result = SiteSyncResult(site_url)
+        try:
+            if not self.settings.selected_courses:
+                result = SiteSyncResult(site_url, skipped_key="site_skipped_no_courses")
+            elif not self.is_logged_in():
+                result = SiteSyncResult(site_url, skipped_key="site_skipped_no_session")
+            else:
+                courses = self._course_choices(remember=False)
+                result = SiteSyncResult(site_url, self.run_sync(courses, progress, cancel))
+        except SITE_ERRORS as error:
+            result = SiteSyncResult(site_url, error=error)
         return result
 
     def _check_announcements(

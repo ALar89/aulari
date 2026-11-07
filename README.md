@@ -45,7 +45,7 @@ A packaged Windows executable will be published in the releases.
 2. **Choose your courses** with the checkboxes and a **destination folder**.
 3. Press **Sincronizar**. The summary shows what is new; the calendar is exported to `<destination>/<academic year>/calendari.ics`.
 
-The interface is in Spanish for now; Catalan and English are planned.
+The interface is available in Catalan, Spanish and English (selector at the bottom of the window; by default it follows the Windows language).
 
 ## Where your data is stored
 

@@ -4,7 +4,7 @@ import tkinter as tk
 import unittest
 from datetime import UTC, datetime
 
-from aulari.app import SyncResult
+from aulari.app import AppError, SiteSyncResult, SyncResult
 from aulari.extras import Announcement, CourseGrade, GradeItem, SubmissionRow
 from aulari.sync import SyncSummary
 from aulari.texts import text
@@ -88,6 +88,24 @@ class WindowTests(unittest.TestCase):
         window.tree.selection_set(window.tree.get_children()[1])
         window._show_message()
         self.assertEqual(window.message.get("1.0", "end").strip(), "text 2")
+
+
+class SyncAllTextTests(unittest.TestCase):
+    """sync_all_text(): one block per academic year."""
+
+    def test_blocks(self) -> None:
+        """Synced, skipped and failed years each get a header and their text."""
+        results = [
+            SiteSyncResult("https://x.test/2026-27", SyncResult(SyncSummary(new=2))),
+            SiteSyncResult("https://x.test/2025-26", skipped_key="site_skipped_no_courses"),
+            SiteSyncResult("https://x.test/2024-25", error=AppError("error_invalid_token")),
+        ]
+        shown = summary.sync_all_text(results)
+        first = text("site_header", site="2026-27") + "\n" + text("summary_new", count=2)
+        last = text("site_header", site="2024-25") + "\n" + text("error_invalid_token")
+        self.assertIn(first, shown)
+        self.assertIn(text("site_skipped_no_courses"), shown)
+        self.assertIn(last, shown)
 
 
 if __name__ == "__main__":

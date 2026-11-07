@@ -132,5 +132,50 @@ class OtherSitesTests(unittest.TestCase):
         )
 
 
+class LanguageTests(unittest.TestCase):
+    """Catalan, Spanish and English texts, detection and switching."""
+
+    def tearDown(self) -> None:
+        """Go back to the default language for the other tests."""
+        texts.set_language(texts.DEFAULT_LANGUAGE)
+
+    def placeholders(self, value: str) -> set[str]:
+        """Return the {names} used in a text."""
+        return {name for _, name, _, _ in string.Formatter().parse(value) if name}
+
+    def test_same_keys_and_placeholders_in_every_language(self) -> None:
+        """No language misses a text or a {placeholder}."""
+        reference = texts.load_strings("es")
+        for code in texts.LANGUAGES:
+            strings = texts.load_strings(code)
+            self.assertEqual(set(strings), set(reference), code)
+            for key, value in strings.items():
+                self.assertTrue(value.strip(), (code, key))
+                self.assertEqual(
+                    self.placeholders(value), self.placeholders(reference[key]), (code, key)
+                )
+            self.assertEqual(len(strings["weekdays"].split(",")), 7, code)
+
+    def test_detect_language(self) -> None:
+        """Locale names from Windows and POSIX map to the three languages."""
+        cases = {"ca_ES": "ca", "Catalan_Spain": "ca", "es_ES": "es", "Spanish_Spain": "es"}
+        cases.update({"en_US": "en", "French_France": "en", "": "en"})
+        for name, expected in cases.items():
+            self.assertEqual(texts.detect_language(name), expected, name)
+
+    def test_switching_language(self) -> None:
+        """text() follows the current language; unknown codes fall back to Spanish."""
+        texts.set_language("ca")
+        self.assertEqual(texts.text("sync_button"), "Sincronitza")
+        self.assertEqual(texts.text("sync_button", language="en"), "Sync")
+        self.assertEqual(texts.set_language("xx"), "es")
+        self.assertEqual(texts.text("sync_button"), "Sincronizar")
+
+    def test_language_setting_is_saved(self) -> None:
+        """The chosen language survives in the settings file; missing means system."""
+        self.assertEqual(config.settings_from_dict({}).language, "")
+        self.assertEqual(config.settings_from_dict({"language": "ca"}).language, "ca")
+
+
 if __name__ == "__main__":
     unittest.main()

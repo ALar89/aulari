@@ -45,6 +45,8 @@ Se publicará un ejecutable de Windows en las versiones del repositorio.
 2. **Elige tus asignaturas** con las casillas y una **carpeta de destino**.
 3. Pulsa **Sincronizar**. El resumen muestra lo nuevo; el calendario se exporta a `<destino>/<curso académico>/calendari.ics`.
 
+La interfaz está en catalán, castellano e inglés (selector en la parte inferior de la ventana; por defecto sigue el idioma de Windows).
+
 ## Dónde se guardan tus datos
 
 | Qué | Dónde |

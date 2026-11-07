@@ -114,7 +114,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 ## 9. Requisitos no funcionales
 
 - **Plataformas:** Windows en la v1; después macOS (`.webloc` en lugar de `.url`) y Linux.
-- **Idiomas:** interfaz en castellano; catalán e inglés después, con archivos de cadenas.
+- **Idiomas:** interfaz en catalán, castellano e inglés (`strings/ca.json`, `es.json`, `en.json`); por defecto sigue el idioma de Windows y se puede cambiar desde la ventana (hecho el 2026-11-07).
 - **Sin IA en el núcleo.**
 - **Robustez:** un fallo en un archivo o curso no detiene la sincronización.
 - **Logs:** pueden contener IDs y nombres de archivo; nunca el token, el nombre o el correo del usuario, ni respuestas completas. Rotación en la carpeta de datos de la app.
@@ -218,6 +218,12 @@ Todas las funciones responden a un estudiante en e-aules:
 - Repositorio público: https://github.com/ALar89/aulari. Etiqueta `v0.1.0` → flujo Release en verde (≈2 min): `Aulari-v0.1.0-windows.zip` (18 MB) y su `.sha256` (`a9ca1071…a24d3a`), con atestación de procedencia comprobada en la API de GitHub.
 - Dependabot propuso subir `actions/checkout` y `actions/setup-python` a v7 y `attest-build-provenance` a v4; aceptadas. Las tres tocaban `ci.yml` y `release.yml`, así que tras la primera hubo que pedir `@dependabot rebase`. La atestación con v4 se comprobará en la próxima versión.
 - Pendiente: solicitar la firma de código a SignPath Foundation.
+
+### Versión 0.2.0 (verificado el 2026-11-07)
+
+- «Sincronizar todos los cursos»: sincroniza cada curso académico guardado y vuelve al activo; los cursos sin asignaturas o sin sesión se saltan con aviso; no marca como vistas las asignaturas nuevas.
+- Interfaz en catalán, castellano e inglés, según el idioma de Windows o el selector de la ventana.
+- Probado por el usuario: en catalán, con 2025-26 sin asignaturas (saltado) y 2026-27 (89 sin cambios, calendario con 5 eventos).
 
 ## 11. Legal y distribución
 

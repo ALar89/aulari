@@ -10,7 +10,7 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 
-from aulari.texts import text
+from aulari.texts import detect_language, set_language, text
 from aulari.ui.login_handoff import send_to_running_app
 from aulari.ui.main import default_app_dir, run
 from aulari.ui.url_handler import CALLBACK_FLAG
@@ -26,6 +26,7 @@ def handle_callback(url: str) -> None:
     except OSError, json.JSONDecodeError, KeyError, ValueError:
         sent = False
     if not sent:
+        set_language(detect_language())
         root = tk.Tk()
         root.withdraw()  # only the message box, no empty main window
         messagebox.showinfo(text("app_title"), text("callback_no_app"), parent=root)
