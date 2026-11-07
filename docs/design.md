@@ -232,6 +232,7 @@ Todas las funciones responden a un estudiante en e-aules:
 - La tarea `Aulari\Sync` se crea sin administrador, aparece en el Programador de tareas con dos desencadenadores y se ejecuta con la app cerrada (resultado 0).
 - **Error encontrado en la prueba real:** la hora de la última ejecución se guardaba en `config.json`, y cualquier guardado desde la ventana (por ejemplo, marcar la casilla) la ponía a 0. Reproducido con dos instancias de `CampusApp`; ahora se guarda en `background_state.json`, que la ventana no toca.
 - El log de diagnóstico confirmó que, tras una ejecución, las siguientes en pocos segundos se saltan (`due False`).
+- Publicada como versión 0.3.0 el 2026-11-07: `Aulari-v0.3.0-windows.zip` (18 MB, `f0230bf8…708113`) con atestación de procedencia comprobada en la API de GitHub.
 
 ## 11. Legal y distribución
 
