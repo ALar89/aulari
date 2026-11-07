@@ -1,0 +1,5 @@
+# Runtime dependencies (approved in CLAUDE.md). Compile with:
+#   pip-compile --generate-hashes --strip-extras requirements.in
+requests
+keyring
+tzdata

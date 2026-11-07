@@ -1,0 +1,7 @@
+# Development and build tools. Compile with:
+#   pip-compile --generate-hashes --strip-extras requirements-dev.in
+-c requirements.txt
+-r requirements.in
+ruff
+pip-tools
+pyinstaller
