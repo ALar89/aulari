@@ -201,6 +201,7 @@ Todas las funciones responden a un estudiante en e-aules:
 - `gradereport_overview_get_course_grades`: 8 cursos con `courseid`, `grade`, `rawgrade`; 3 con nota (RF18).
 - `gradereport_user_get_grade_items` (una asignatura): 23 ítems con `itemname`, `gradeformatted`, `rangeformatted`, `percentageformatted`, `feedback`, `gradeishidden`… (RF18).
 - Las respuestas contienen datos personales (notas, nombres): solo se guardan en local y nunca se registran en el log.
+- **RF19 verificado (2026-11-07):** añadir `e-aules.uab.cat/2025-26`, iniciar sesión y volver a 2026-27 con el selector conserva la sesión y la selección de cada curso.
 
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 
