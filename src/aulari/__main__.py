@@ -45,9 +45,19 @@ def handle_callback(url: str) -> None:
         root.destroy()
 
 
+def log_uncaught(
+    exc_type: type[BaseException], exc_value: BaseException, traceback: object
+) -> None:
+    """Send an unexpected error of the windowless background run to the log file."""
+    logging.getLogger("aulari.background").error(
+        "Unexpected error in the background run", exc_info=(exc_type, exc_value, traceback)
+    )
+
+
 def run_background_mode() -> None:
     """Sync in the background and show a notice only if there is news (D7)."""
     configure_logging(log_file=default_app_dir() / LOG_DIR_NAME / LOG_FILE_NAME)
+    sys.excepthook = log_uncaught
     try:
         app = CampusApp(default_app_dir())
         set_language(app.settings.language or detect_language())

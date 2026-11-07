@@ -4,7 +4,9 @@ No test touches the real Windows Task Scheduler: schtasks is replaced by a
 fake runner that only records the commands.
 """
 
+import json
 import subprocess
+import tempfile
 import tkinter as tk
 import unittest
 from datetime import datetime
@@ -12,7 +14,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from aulari import background, scheduler
-from aulari.app import AppError, SiteSyncResult, SyncResult
+from aulari.app import AppError, CampusApp, SiteSyncResult, SyncResult
 from aulari.background import BackgroundOutcome
 from aulari.config import Settings
 from aulari.extras import Announcement
@@ -107,8 +109,12 @@ class FakeApp:
     """Minimal CampusApp for run_background()."""
 
     def __init__(self, hours: int, last: float, results: list[SiteSyncResult]) -> None:
-        """Settings with the interval and last run; canned sync results."""
-        self.settings = Settings(auto_sync_hours=hours, last_background_sync=last)
+        """Settings with the interval, a temporary app folder with the last run."""
+        self.settings = Settings(auto_sync_hours=hours)
+        self.folder = tempfile.TemporaryDirectory()
+        self.app_dir = Path(self.folder.name)
+        if last:
+            background.save_last_run(self.app_dir, last)
         self.results = results
         self.synced = 0
         self.saved = 0
@@ -165,10 +171,30 @@ class BackgroundTests(unittest.TestCase):
         outcome = background.run_background(app, now=5 * DAY)
         self.assertTrue(outcome.ran)
         self.assertFalse(outcome.worth_notifying())
-        self.assertEqual(
-            (app.synced, app.saved, app.settings.last_background_sync), (1, 1, 5 * DAY)
-        )
+        self.assertEqual((app.synced, background.load_last_run(app.app_dir)), (1, 5 * DAY))
         self.assertFalse(background.run_background(app, now=5 * DAY + 60).ran)
+
+
+class StateFileTests(unittest.TestCase):
+    """The last run lives in its own file, so an open window cannot erase it."""
+
+    def test_window_save_keeps_last_run(self) -> None:
+        """A save from another CampusApp instance does not reset the last run."""
+        with tempfile.TemporaryDirectory() as folder:
+            app_dir = Path(folder)
+            settings = {"site_url": "https://moodle.example.test/2026-27", "auto_sync_hours": 24}
+            (app_dir / "config.json").write_text(json.dumps(settings), encoding="utf-8")
+            window = CampusApp(app_dir)
+            background.run_background(CampusApp(app_dir), now=10 * DAY)
+            window.set_selection([1072])
+            self.assertEqual(background.load_last_run(app_dir), 10 * DAY)
+            self.assertFalse(background.should_run(CampusApp(app_dir), 10 * DAY + 3600))
+
+    def test_unreadable_state_counts_as_never(self) -> None:
+        """A damaged state file is ignored, so the next run happens."""
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / background.STATE_NAME).write_text("{bad", encoding="utf-8")
+            self.assertEqual(background.load_last_run(Path(folder)), 0.0)
 
 
 class NoticeTests(unittest.TestCase):

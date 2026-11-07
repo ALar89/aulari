@@ -227,6 +227,12 @@ Todas las funciones responden a un estudiante en e-aules:
 - Probado por el usuario: en catalán, con 2025-26 sin asignaturas (saltado) y 2026-27 (89 sin cambios, calendario con 5 eventos).
 - Publicada el 2026-11-07: `Aulari-v0.2.0-windows.zip` (18 MB, `d21386d3…a668d8`) con atestación, ya con `attest-build-provenance@v4`: la comprobación pendiente de la 0.1.0 queda hecha.
 
+### Sincronización automática (verificado el 2026-11-07)
+
+- La tarea `Aulari\Sync` se crea sin administrador, aparece en el Programador de tareas con dos desencadenadores y se ejecuta con la app cerrada (resultado 0).
+- **Error encontrado en la prueba real:** la hora de la última ejecución se guardaba en `config.json`, y cualquier guardado desde la ventana (por ejemplo, marcar la casilla) la ponía a 0. Reproducido con dos instancias de `CampusApp`; ahora se guarda en `background_state.json`, que la ventana no toca.
+- El log de diagnóstico confirmó que, tras una ejecución, las siguientes en pocos segundos se saltan (`due False`).
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.

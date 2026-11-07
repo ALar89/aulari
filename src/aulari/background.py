@@ -5,10 +5,17 @@ and the last background run is old enough, it syncs every academic year
 (the same as the 'sync all' button) and returns what is worth telling the
 user. The task fires at logon and every N hours; the minimum gap avoids a
 second run right after the logon one.
+
+The time of the last run is kept in background_state.json, not in
+config.json: an open window saves its own copy of the settings and would
+otherwise overwrite it (found in the first real test, design.md section 10).
 """
 
+import json
+import logging
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from aulari.app import AppError, CampusApp, SiteSyncResult
 
@@ -16,6 +23,9 @@ from aulari.app import AppError, CampusApp, SiteSyncResult
 MIN_GAP_FACTOR = 0.8
 SECONDS_PER_HOUR = 3600
 NO_SESSION = "site_skipped_no_session"
+STATE_NAME = "background_state.json"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -37,11 +47,36 @@ class BackgroundOutcome:
         return result
 
 
+def load_last_run(app_dir: Path) -> float:
+    """Return the Unix time of the last background run (0 if none or unreadable)."""
+    result = 0.0
+    path = app_dir / STATE_NAME
+    if path.is_file():
+        try:
+            with path.open(encoding="utf-8") as state_file:
+                data = json.load(state_file)
+            if isinstance(data, dict) and isinstance(data.get("last_run"), (int, float)):
+                result = float(data["last_run"])
+        except (OSError, json.JSONDecodeError) as error:
+            logger.warning("Ignoring unreadable %s: %s", STATE_NAME, error)
+    return result
+
+
+def save_last_run(app_dir: Path, moment: float) -> None:
+    """Remember the time of this background run.
+
+    Raises: OSError if the file cannot be written.
+    """
+    app_dir.mkdir(parents=True, exist_ok=True)
+    with (app_dir / STATE_NAME).open("w", encoding="utf-8") as state_file:
+        json.dump({"last_run": moment}, state_file)
+
+
 def should_run(app: CampusApp, now: float) -> bool:
     """Return True if automatic sync is on and the last run is old enough."""
     hours = app.settings.auto_sync_hours
     gap = hours * SECONDS_PER_HOUR * MIN_GAP_FACTOR
-    result = hours > 0 and now - app.settings.last_background_sync >= gap
+    result = hours > 0 and now - load_last_run(app.app_dir) >= gap
     return result
 
 
@@ -72,12 +107,19 @@ def summarize(results: list[SiteSyncResult]) -> BackgroundOutcome:
 def run_background(app: CampusApp, now: float | None = None) -> BackgroundOutcome:
     """Sync every academic year if it is time to; return the outcome.
 
-    Raises: OSError if the settings cannot be saved.
+    Raises: OSError if the time of the run cannot be saved.
     """
     moment = now if now is not None else time.time()
     outcome = BackgroundOutcome()
-    if should_run(app, moment):
+    due = should_run(app, moment)
+    logger.info(
+        "Background run: every %s h, last %s, due %s",
+        app.settings.auto_sync_hours,
+        load_last_run(app.app_dir),
+        due,
+    )
+    if due:
         outcome = summarize(app.run_sync_all())
-        app.settings.last_background_sync = moment
-        app.save()
+        save_last_run(app.app_dir, moment)
+        logger.info("Background run finished: %s (saved last %s)", outcome, moment)
     return outcome
