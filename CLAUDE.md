@@ -36,7 +36,7 @@ Programación estructurada clásica, código didáctico:
 - **Recursión** permitida (árbol de carpetas), con caso base explícito.
 - Variables inicializadas al principio de la función, con nombres descriptivos. Anotaciones de tipo en las firmas.
 - Funciones pequeñas: una tarea, con docstring.
-- Código, comentarios, docstrings y README **en inglés**. Rutas con `pathlib`.
+- Código, comentarios y docstrings **en inglés**. README en inglés (`README.md`) y en castellano (`README.es.md`), con el mismo contenido. Rutas con `pathlib`.
 - Tkinter: la red va en un `threading.Thread`; la interfaz solo se toca desde el hilo principal con `root.after()`. El núcleo nunca importa `tkinter`.
 
 ```python
