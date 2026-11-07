@@ -1,7 +1,7 @@
 """Phase 3 check: export the real calendar of all enrolled courses to an .ics file.
 
-Uses campus_sync.calendar_export with the test registry
-(%LOCALAPPDATA%\\campus-sync\\poc_registry.sqlite3) and, by default, the
+Uses aulari.calendar_export with the test registry
+(%LOCALAPPDATA%\\aulari\\poc_registry.sqlite3) and, by default, the
 destination poc\\out\\sync-test\\ (ignored by git). Course aliases come from
 the registry if the course was already synced, otherwise from course_alias().
 
@@ -19,11 +19,11 @@ from pathlib import Path, PurePosixPath
 import keyring.errors
 import requests
 
-from campus_sync import auth, organizer
-from campus_sync.calendar_export import CalendarRequest, export_calendar
-from campus_sync.log_filter import configure_logging
-from campus_sync.moodle_client import InvalidTokenError, MoodleClient, MoodleError
-from campus_sync.registry import Registry, RegistryError
+from aulari import auth, organizer
+from aulari.calendar_export import CalendarRequest, export_calendar
+from aulari.log_filter import configure_logging
+from aulari.moodle_client import InvalidTokenError, MoodleClient, MoodleError
+from aulari.registry import Registry, RegistryError
 
 MIN_ARGS = 3  # script name + site URL + user id
 MAX_ARGS = 4  # ... + destination
@@ -58,7 +58,7 @@ def run(site_url: str, user_id: int, destination: Path) -> int:
     exit_code = 1
     year = organizer.academic_year_from_site(site_url)
     token = auth.load_token(site_url, user_id)
-    app_dir = Path(os.environ["LOCALAPPDATA"]) / "campus-sync"
+    app_dir = Path(os.environ["LOCALAPPDATA"]) / "aulari"
     if year is None:
         print("The site URL has no academic year (e.g. /2026-27).")
     elif token is None:

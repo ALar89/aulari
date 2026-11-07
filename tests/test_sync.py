@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.sync: whole sync runs with a fake Moodle."""
+"""Unit tests for aulari.sync: whole sync runs with a fake Moodle."""
 
 import hashlib
 import os
@@ -12,10 +12,10 @@ from pathlib import Path
 
 import requests
 
-from campus_sync import sync
-from campus_sync.moodle_client import InvalidTokenError
-from campus_sync.registry import STATE_MISSING, STATE_REMOVED, Registry
-from campus_sync.sync import Course, NotOwnerError, SyncLockedError, SyncTarget
+from aulari import sync
+from aulari.moodle_client import InvalidTokenError
+from aulari.registry import STATE_MISSING, STATE_REMOVED, Registry
+from aulari.sync import Course, NotOwnerError, SyncLockedError, SyncTarget
 
 SITE = "https://moodle.example.test/2026-27"
 BASE = SITE + "/webservice/pluginfile.php"
@@ -135,7 +135,7 @@ class SyncTestCase(unittest.TestCase):
         return sorted(
             path.relative_to(self.destination).as_posix()
             for path in self.destination.rglob("*")
-            if path.is_file() and ".campus-sync" not in path.parts
+            if path.is_file() and ".aulari" not in path.parts
         )
 
 
@@ -147,6 +147,8 @@ class FirstSyncTests(SyncTestCase):
         summary = self.run_sync()
         self.assertEqual(summary.new, 3)
         self.assertEqual(summary.errors, [])
+        self.assertEqual(len(summary.changes), 3)
+        self.assertFalse(any(change.is_new_version for change in summary.changes))
         self.assertEqual(
             self.files(),
             [
@@ -203,6 +205,10 @@ class SecondSyncTests(SyncTestCase):
         self.moodle.add_resource(GUIDE_CMID, "guia.pdf", b"guide version 2", T2)
         summary = self.run_sync()
         self.assertEqual(summary.new_versions, 1)
+        self.assertEqual(
+            summary.changes,
+            [sync.ChangedFile("2026-27/SO/01 - Tema 1/guia (2026-11-06).pdf", True)],
+        )
         self.assertEqual((self.section_dir / "guia.pdf").read_bytes(), b"guide v1")
         self.assertEqual(
             (self.section_dir / "guia (2026-11-06).pdf").read_bytes(), b"guide version 2"
@@ -273,7 +279,7 @@ class RobustnessTests(SyncTestCase):
         summary = self.run_sync()
         self.assertTrue(summary.invalid_token)
         self.assertEqual(self.files(), [])
-        self.assertFalse((self.destination / ".campus-sync" / "sync.lock").exists())
+        self.assertFalse((self.destination / ".aulari" / "sync.lock").exists())
 
     def test_cancel_stops_between_files(self) -> None:
         """A cancel request before the first file stops the run and skips removal marks."""
@@ -293,15 +299,15 @@ class RobustnessTests(SyncTestCase):
         sync.take_over_ownership(self.destination, "machine-b")
         with self.assertRaises(NotOwnerError):
             self.run_sync()
-        self.assertFalse((self.destination / ".campus-sync" / "sync.lock").exists())
+        self.assertFalse((self.destination / ".aulari" / "sync.lock").exists())
         sync.take_over_ownership(self.destination, MACHINE)
         self.assertEqual(self.run_sync().new, 3)
 
     def test_temp_folder_is_removed_and_control_folder_hidden(self) -> None:
-        """After a sync no empty temp folder is left; .campus-sync is hidden on Windows."""
+        """After a sync no empty temp folder is left; .aulari is hidden on Windows."""
         self.run_sync()
         self.assertFalse((self.destination / sync.downloader.TEMP_DIR_NAME).exists())
-        control = self.destination / ".campus-sync"
+        control = self.destination / ".aulari"
         self.assertTrue(control.is_dir())
         if sys.platform == "win32":
             attributes = os.stat(control).st_file_attributes

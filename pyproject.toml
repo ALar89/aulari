@@ -4,7 +4,7 @@ requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "campus-sync"
+name = "aulari"
 version = "0.1.0"
 description = "Download and organize course material from a Moodle site"
 requires-python = ">=3.14"
@@ -12,9 +12,13 @@ license = "MIT"
 # Exact pinned versions live in requirements.txt.
 dependencies = ["requests", "keyring", "tzdata"]
 
+[project.urls]
+Homepage = "https://github.com/ALar89/aulari"
+Issues = "https://github.com/ALar89/aulari/issues"
+
 [tool.setuptools.package-data]
 # UI texts are data files inside the package.
-campus_sync = ["strings/*.json"]
+aulari = ["strings/*.json"]
 
 [tool.ruff]
 line-length = 100

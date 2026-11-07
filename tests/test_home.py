@@ -1,18 +1,21 @@
 """Tests for the main screen texts and a smoke test of HomeFrame with a fake app."""
 
+import tempfile
 import threading
 import tkinter as tk
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from tkinter import ttk
 
-from campus_sync.app import CourseChoice, SyncResult
-from campus_sync.config import Settings
-from campus_sync.sync import Progress, SyncSummary
-from campus_sync.texts import text
-from campus_sync.ui import summary
-from campus_sync.ui.home_frame import HomeFrame
-from campus_sync.ui.worker import Worker
+from aulari.app import CourseChoice, Deadline, SyncResult
+from aulari.config import Settings
+from aulari.sync import Progress, SyncSummary
+from aulari.texts import text
+from aulari.ui import summary
+from aulari.ui.home_frame import HomeFrame
+from aulari.ui.news_window import NewsWindow
+from aulari.ui.worker import Worker
 
 TOKEN = "0123456789abcdef0123456789abcdef"
 CHOICES = [
@@ -20,6 +23,7 @@ CHOICES = [
     CourseChoice(999, "Xarxes", True, False),
 ]
 TIMEOUT_MS = 3000
+DUE = int(datetime(2026, 11, 9, 22, 59, tzinfo=UTC).timestamp())  # Monday 23:59 in Madrid
 
 
 class SummaryTextTests(unittest.TestCase):
@@ -63,6 +67,20 @@ class SummaryTextTests(unittest.TestCase):
         ).splitlines()
         self.assertEqual(lines[:2], [text("error_invalid_token"), text("summary_cancelled")])
 
+    def test_deadline_line(self) -> None:
+        """Weekday and time are shown in Madrid time, with the course alias."""
+        self.assertEqual(
+            summary.deadline_line(Deadline(DUE, "SO", "Entrega P1")),
+            text(
+                "deadline_line", weekday="lun", date="09/11 23:59", course="SO", name="Entrega P1"
+            ),
+        )
+
+    def test_news_line_in_summary(self) -> None:
+        """When Novedades.txt was written, the summary says where."""
+        result = SyncResult(SyncSummary(new=1), news_path=Path("C:/Campus/2026-27/Novedades.txt"))
+        self.assertIn(text("summary_news", path=result.news_path), summary.summary_text(result))
+
 
 class FakeApp:
     """Stand-in for CampusApp with the methods HomeFrame uses."""
@@ -75,9 +93,17 @@ class FakeApp:
         self.selection = None
         self.synced_with = None
 
+    def sites(self) -> list[str]:
+        """Return the only saved site."""
+        return [self.settings.site_url]
+
     def list_courses(self) -> list[CourseChoice]:
         """Return the two test courses."""
         return list(CHOICES)
+
+    def upcoming_deadlines(self, courses: list[CourseChoice]) -> list[Deadline]:
+        """Return one deadline."""
+        return [Deadline(DUE, "SO", "Entrega P1")]
 
     def set_selection(self, course_ids: list[int]) -> None:
         """Remember the selection."""
@@ -103,7 +129,7 @@ class HomeFrameSmokeTests(unittest.TestCase):
             self.skipTest("No display available for Tkinter")
         self.root.withdraw()
         self.app = FakeApp()
-        self.frame = HomeFrame(self.root, self.app, Worker(self.root), lambda: None)
+        self.frame = HomeFrame(self.root, self.app, Worker(self.root), lambda: None, lambda: None)
         self.frame.pack()
 
     def tearDown(self) -> None:
@@ -130,7 +156,8 @@ class HomeFrameSmokeTests(unittest.TestCase):
 
     def test_courses_selection_and_sync(self) -> None:
         """Two checkboxes appear; ticking saves; syncing shows the summary."""
-        self.pump_until(lambda: len(self.checkbuttons()) == len(CHOICES))
+        # Courses load first, then the deadlines; controls stay disabled until both end.
+        self.pump_until(lambda: "Entrega P1" in self.frame._deadlines.get())
         self.assertEqual(len(self.checkbuttons()), len(CHOICES))
         self.assertEqual(self.frame._status.get(), text("courses_new"))
         self.checkbuttons()[1].invoke()
@@ -138,7 +165,30 @@ class HomeFrameSmokeTests(unittest.TestCase):
         self.frame._sync()
         self.pump_until(lambda: text("summary_new", count=1) in self.frame._status.get())
         self.assertIn(text("summary_new", count=1), self.frame._status.get())
+        self.pump_until(lambda: "Entrega P1" in self.frame._deadlines.get())
+        self.assertIn("[SO] Entrega P1", self.frame._deadlines.get())
         self.assertEqual(str(self.frame._sync_button.cget("state")), "normal")
+
+
+class NewsWindowTests(unittest.TestCase):
+    """NewsWindow shows the file read-only."""
+
+    def test_shows_file_content(self) -> None:
+        """The text widget holds the file and cannot be edited."""
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            self.skipTest("No display available for Tkinter")
+        root.withdraw()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / "Novedades.txt"
+                path.write_text("== 2026-11-06 ==\n  [SO] Tema 1.pdf\n", encoding="utf-8")
+                window = NewsWindow(root, path)
+                self.assertIn("[SO] Tema 1.pdf", window.text.get("1.0", "end"))
+                self.assertEqual(str(window.text.cget("state")), "disabled")
+        finally:
+            root.destroy()
 
 
 if __name__ == "__main__":

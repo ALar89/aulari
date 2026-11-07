@@ -1,8 +1,8 @@
 """Phase 2 check: sync ONE real course with the core modules into a test folder.
 
-Uses campus_sync.sync end to end (lock, owner.json, registry, downloads).
+Uses aulari.sync end to end (lock, owner.json, registry, downloads).
 To keep the real data clean it uses a separate test registry
-(%LOCALAPPDATA%\\campus-sync\\poc_registry.sqlite3) and, by default, the
+(%LOCALAPPDATA%\\aulari\\poc_registry.sqlite3) and, by default, the
 destination poc\\out\\sync-test\\ (ignored by git). Run it twice: the second
 run should download nothing.
 
@@ -18,11 +18,11 @@ from pathlib import Path
 import keyring.errors
 import requests
 
-from campus_sync import auth, organizer
-from campus_sync.log_filter import configure_logging
-from campus_sync.moodle_client import InvalidTokenError, MoodleClient, MoodleError
-from campus_sync.registry import Registry, RegistryError
-from campus_sync.sync import (
+from aulari import auth, organizer
+from aulari.log_filter import configure_logging
+from aulari.moodle_client import InvalidTokenError, MoodleClient, MoodleError
+from aulari.registry import Registry, RegistryError
+from aulari.sync import (
     Course,
     NotOwnerError,
     Progress,
@@ -42,11 +42,11 @@ logger = logging.getLogger("sync_one_course")
 
 
 def app_dir() -> Path:
-    """Return %LOCALAPPDATA%\\campus-sync.
+    """Return %LOCALAPPDATA%\\aulari.
 
     Raises: KeyError if LOCALAPPDATA is not defined.
     """
-    result = Path(os.environ["LOCALAPPDATA"]) / "campus-sync"
+    result = Path(os.environ["LOCALAPPDATA"]) / "aulari"
     return result
 
 

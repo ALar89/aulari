@@ -1,7 +1,7 @@
 """Create anonymized test fixtures from recorded Moodle responses.
 
 Reads the latest recordings of one course from
-%LOCALAPPDATA%\\campus-sync\\recordings\\ (outside the repository) and writes
+%LOCALAPPDATA%\\aulari\\recordings\\ (outside the repository) and writes
 tests/fixtures/course_contents.json and tests/fixtures/assignments.json.
 
 Anonymization keeps only the fields the code uses (whitelist) and replaces:
@@ -192,7 +192,7 @@ def latest_recording(pattern: str) -> Path:
 
     Raises: FileNotFoundError if there is none; KeyError if LOCALAPPDATA is unset.
     """
-    folder = Path(os.environ["LOCALAPPDATA"]) / "campus-sync" / "recordings"
+    folder = Path(os.environ["LOCALAPPDATA"]) / "aulari" / "recordings"
     matches = sorted(folder.glob(pattern))
     if not matches:
         raise FileNotFoundError(f"No recording matches {pattern}")

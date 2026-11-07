@@ -1,17 +1,18 @@
-"""Unit tests for campus_sync.app with a fake Moodle and an in-memory keyring."""
+"""Unit tests for aulari.app with a fake Moodle and an in-memory keyring."""
 
 import base64
 import hashlib
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 
 import keyring
 from keyring.backend import KeyringBackend
 
-from campus_sync import auth
-from campus_sync.app import AppError, CampusApp
-from campus_sync.sync import NotOwnerError, take_over_ownership
+from aulari import auth
+from aulari.app import AppError, CampusApp
+from aulari.sync import NotOwnerError, take_over_ownership
 
 SITE = "https://moodle.example.test/2026-27"
 TOKEN = "0123456789abcdef0123456789abcdef"
@@ -50,6 +51,7 @@ class FakeClient:
     """Fake MoodleClient for every function CampusApp uses."""
 
     enrolled = list(COURSES)
+    discussions = []  # announcements in the news forum of course 1072
 
     def __init__(self, site_url: str, token: str) -> None:
         """Remember the token used."""
@@ -93,7 +95,39 @@ class FakeClient:
                     ],
                 }
             ],
-            "mod_assign_get_assignments": {"courses": []},
+            "mod_assign_get_assignments": {
+                "courses": [{"id": 1072, "assignments": [{"id": 6118, "name": "P1", "duedate": 9}]}]
+            },
+            "mod_assign_get_submission_status": {
+                "lastattempt": {"submission": {"status": "submitted"}},
+                "feedback": {
+                    "gradefordisplay": "8,50&nbsp;/&nbsp;10,00",
+                    "plugins": [{"type": "comments"}],
+                },
+            },
+            "mod_forum_get_forums_by_courses": [
+                {"id": 3003, "course": 1072, "type": "news"},
+                {"id": 3004, "course": 1072, "type": "general"},
+            ],
+            "mod_forum_get_forum_discussions": {"discussions": FakeClient.discussions},
+            "gradereport_overview_get_course_grades": {
+                "grades": [{"courseid": 1072, "grade": "7,25"}, {"courseid": 472, "grade": "-"}]
+            },
+            "gradereport_user_get_grade_items": {
+                "usergrades": [
+                    {
+                        "gradeitems": [
+                            {
+                                "itemname": "P1",
+                                "gradeformatted": "8,50",
+                                "rangeformatted": "0–10",
+                                "percentageformatted": "85,00 %",
+                            },
+                            {"itemname": None, "itemtype": "course", "gradeformatted": ""},
+                        ]
+                    }
+                ]
+            },
             "core_calendar_get_calendar_events": {
                 "events": [{"id": 9, "name": "Entrega", "courseid": 1072, "timestart": 1790000000}]
             },
@@ -222,6 +256,23 @@ class SyncTests(AppTestCase):
         )
         self.assertFalse((self.destination / "2026-27" / "VIUUAB").exists())
 
+    def test_news_file_after_sync(self) -> None:
+        """A sync with new files writes Novedades.txt and reports its path."""
+        self.app.set_destination(self.destination)
+        result = self.app.run_sync(self.choices)
+        self.assertEqual(result.news_path, self.destination / "2026-27" / "Novedades.txt")
+        self.assertIn("[SO] 00 - General/guia.pdf", result.news_path.read_text(encoding="utf-8"))
+        self.assertIsNone(self.app.run_sync(self.choices).news_path)
+
+    def test_upcoming_deadlines(self) -> None:
+        """Only future events of the selected courses, with their alias."""
+        now = datetime.fromtimestamp(1789000000, UTC)
+        deadlines = self.app.upcoming_deadlines(self.app.list_courses(), now)
+        self.assertEqual(len(deadlines), 1)
+        self.assertEqual((deadlines[0].course_alias, deadlines[0].name), ("SO", "Entrega"))
+        later = datetime.fromtimestamp(1790000001, UTC)
+        self.assertEqual(self.app.upcoming_deadlines(self.app.list_courses(), later), [])
+
     def test_other_owner_then_take_over(self) -> None:
         """Another computer's folder is refused until take_over()."""
         self.app.set_destination(self.destination)
@@ -250,6 +301,13 @@ class AliasTests(AppTestCase):
         self.assertEqual(self.app.course_aliases(), {1072: "SO", 472: "EC"})
         choices = {choice.course_id: choice for choice in self.app.list_courses()}
         self.assertEqual((choices[1072].alias, choices[402].alias), ("SO", ""))
+
+    def test_course_folder_and_news_file(self) -> None:
+        """Synced courses have a folder on disk; Novedades.txt exists after the sync."""
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertEqual(self.app.course_folder(choices[1072]), self.year_dir / "SO")
+        self.assertIsNone(self.app.course_folder(choices[402]))
+        self.assertEqual(self.app.news_file(), self.year_dir / "Novedades.txt")
 
     def test_rename_moves_folder_and_keeps_sync_working(self) -> None:
         """The folder moves, the registry follows, and the next sync finds everything."""
@@ -283,6 +341,125 @@ class AliasTests(AppTestCase):
             self.app.rename_course(1072, "Mine")
         self.assertEqual(context.exception.key, "error_alias_taken")
         self.assertTrue((self.year_dir / "SO").exists())
+
+
+def discussion(discussion_id: int, subject: str, when: int) -> dict:
+    """Return a news forum discussion as Moodle gives it."""
+    return {
+        "id": discussion_id * 10,
+        "discussion": discussion_id,
+        "subject": subject,
+        "message": f"<p>{subject} &amp; more</p>",
+        "timemodified": when,
+    }
+
+
+class ExtrasTests(AppTestCase):
+    """Announcements (RF16), submissions (RF17) and grades (RF18)."""
+
+    def setUp(self) -> None:
+        """Log in, select SO and set a destination."""
+        super().setUp()
+        FakeClient.discussions = [discussion(1, "Benvinguda", 100)]
+        self.log_in()
+        self.choices = self.app.list_courses()
+        self.app.set_selection([1072])
+        self.app.set_destination(self.destination)
+
+    def test_first_sync_marks_existing_announcements_as_seen(self) -> None:
+        """Old announcements are not reported; a later one is, only once."""
+        self.assertEqual(self.app.run_sync(self.choices).announcements, [])
+        FakeClient.discussions = [discussion(1, "Benvinguda", 100), discussion(2, "Examen", 200)]
+        result = self.app.run_sync(self.choices)
+        self.assertEqual(
+            [(a.course_alias, a.subject) for a in result.announcements], [("SO", "Examen")]
+        )
+        self.assertEqual(result.announcements[0].message, "Examen & more")
+        self.assertEqual(self.app.run_sync(self.choices).announcements, [])
+
+    def test_submissions(self) -> None:
+        """Each assignment of the selected courses has status, grade and comments flag."""
+        rows = self.app.submissions(self.choices)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(
+            (row.course_alias, row.name, row.status, row.grade),
+            ("SO", "P1", "submitted", "8,50 / 10,00"),
+        )
+        self.assertTrue(row.has_comments)
+
+    def test_grades(self) -> None:
+        """Course grades use course names; empty grades become a dash."""
+        grades = {grade.course_id: grade for grade in self.app.course_grades(self.choices)}
+        self.assertEqual(grades[1072].grade, "7,25")
+        self.assertEqual(grades[1072].course_name, "Sistemes Operatius [MO86824]")
+        self.assertEqual(grades[472].grade, "-")
+        items = self.app.grade_items(1072)
+        self.assertEqual(
+            (items[0].name, items[0].grade, items[0].percentage), ("P1", "8,50", "85,00 %")
+        )
+        self.assertEqual((items[1].name, items[1].grade), ("course", "—"))
+
+
+class SitesTests(AppTestCase):
+    """Several academic year sites (RF19)."""
+
+    def setUp(self) -> None:
+        """Log in to 2026-27 and select a course."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([1072])
+
+    def test_add_switch_and_back(self) -> None:
+        """Each site keeps its own user and selection when switching."""
+        old = "https://moodle.example.test/2025-26"
+        self.assertEqual(self.app.suggested_site_url(), old)
+        self.app.add_site(old)
+        self.assertEqual(self.app.settings.site_url, old)
+        self.assertFalse(self.app.is_logged_in())
+        self.assertEqual(self.app.sites(), [old, SITE])
+        self.assertEqual(self.app.previous_site(), SITE)
+        self.app.set_selection([5])
+        self.app.switch_site(SITE)
+        self.assertEqual(
+            (self.app.settings.user_id, self.app.settings.selected_courses), (42, [1072])
+        )
+        self.assertTrue(self.app.is_logged_in())
+        reopened = CampusApp(self.app.app_dir, client_factory=FakeClient)
+        reopened.switch_site(old)
+        self.assertEqual(reopened.settings.selected_courses, [5])
+
+    def test_errors(self) -> None:
+        """Duplicates, unknown sites and URLs without a year are refused."""
+        cases = [
+            (self.app.add_site, SITE + "/", "error_site_exists"),
+            (self.app.add_site, "https://moodle.example.test", "error_no_year"),
+            (self.app.switch_site, "https://other.test/2020-21", "error_site_unknown"),
+        ]
+        for action, url, key in cases:
+            with self.assertRaises(AppError, msg=url) as context:
+                action(url)
+            self.assertEqual(context.exception.key, key)
+
+    def test_remove_sites(self) -> None:
+        """Removing the active site deletes its token and activates the other one."""
+        old = "https://moodle.example.test/2025-26"
+        self.app.add_site(old)
+        self.app.switch_site(SITE)
+        self.app.remove_site(SITE)
+        self.assertIsNone(auth.load_token(SITE, 42))
+        self.assertEqual((self.app.settings.site_url, self.app.sites()), (old, [old]))
+        self.app.remove_site(old)
+        self.assertEqual(self.app.sites(), [old])
+
+    def test_editing_url_to_saved_site_switches(self) -> None:
+        """Typing a saved site's URL on the login screen switches instead of duplicating."""
+        old = "https://moodle.example.test/2025-26"
+        self.app.add_site(old)
+        self.app.set_site_url(SITE)
+        self.assertEqual(self.app.sites(), [old, SITE])
+        self.assertEqual(self.app.settings.user_id, 42)
 
 
 if __name__ == "__main__":

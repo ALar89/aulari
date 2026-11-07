@@ -28,7 +28,7 @@ import keyring.errors
 import requests
 from moodle_ws import KEYRING_SERVICE, MoodleError, call_function, keyring_username
 
-from campus_sync.log_filter import configure_logging
+from aulari.log_filter import configure_logging
 
 EXPECTED_ARGS = 2  # script name + site URL
 MOBILE_SERVICE = "moodle_mobile_app"

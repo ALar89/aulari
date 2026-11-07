@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.log_filter."""
+"""Unit tests for aulari.log_filter."""
 
 import io
 import logging
@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from campus_sync.log_filter import RedactingFilter, configure_logging, redact
+from aulari.log_filter import RedactingFilter, configure_logging, redact
 
 SECRET = "abc123SECRETxyz"
 
@@ -84,10 +84,10 @@ class LogFileTests(unittest.TestCase):
         root = logging.getLogger()
         before = list(root.handlers)
         with tempfile.TemporaryDirectory() as folder:
-            log_file = Path(folder) / "logs" / "campus-sync.log"
+            log_file = Path(folder) / "logs" / "aulari.log"
             configure_logging(log_file=log_file)
             try:
-                logging.getLogger("campus_sync.test").warning("url ?wstoken=%s", SECRET)
+                logging.getLogger("aulari.test").warning("url ?wstoken=%s", SECRET)
                 for handler in root.handlers:
                     handler.flush()
                 content = log_file.read_text(encoding="utf-8")

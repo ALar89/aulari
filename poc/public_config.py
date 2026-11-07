@@ -7,7 +7,7 @@ version and the canonical site URL.
 Usage (PowerShell, from the project folder):
     py -3.14 poc\\public_config.py https://<moodle-site-url>
 
-The full response is saved to %LOCALAPPDATA%\\campus-sync\\recordings\\
+The full response is saved to %LOCALAPPDATA%\\aulari\\recordings\\
 (outside the repository). Only a summary is printed.
 """
 
@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-USER_AGENT = "CampusSync/0.1.0-poc (+https://github.com/TODO/campus-sync)"
+USER_AGENT = "Aulari/0.1.0-poc (+https://github.com/ALar89/aulari)"
 EXPECTED_ARGS = 2  # script name + site URL
 TIMEOUT_SECONDS = 15
 FUNCTION_NAME = "tool_mobile_get_public_config"
@@ -84,7 +84,7 @@ def recordings_dir() -> Path:
 
     Raises: KeyError if LOCALAPPDATA is not defined; OSError if it cannot be created.
     """
-    result = Path(os.environ["LOCALAPPDATA"]) / "campus-sync" / "recordings"
+    result = Path(os.environ["LOCALAPPDATA"]) / "aulari" / "recordings"
     result.mkdir(parents=True, exist_ok=True)
     return result
 

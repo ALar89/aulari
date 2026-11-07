@@ -1,4 +1,4 @@
-# CLAUDE.md — Campus Sync for Moodle (nombre provisional)
+# CLAUDE.md — Aulari
 
 App de escritorio en Python que descarga el material de un Moodle (por defecto, el Campus Virtual de la UAB, "e-aules"), lo ordena en carpetas y exporta el calendario.
 
@@ -7,10 +7,11 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 ## 1. Estado
 
 - **Fase 1 terminada** (confirmada por el usuario el 2026-11-06). Resultados en `docs/design.md` §10; scripts en `poc/`.
-- **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/campus_sync/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
+- **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/aulari/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
 - **Fase 3 terminada** (confirmada por el usuario el 2026-11-06): `calendar_export.py`, verificado con Proton Calendar (sin duplicados al reimportar).
-- **Fase 4 terminada** (confirmada por el usuario el 2026-11-06): interfaz Tkinter en `src/campus_sync/ui/` (`python -m campus_sync`), login automático con `moodlemobile://`, sincronización con calendario, alias, «Recuperar borrados».
-- Siguiente paso: **Fase 5**, empaquetado y publicación (`docs/design.md` §11 y §13). Antes, decidir el nombre (D5).
+- **Fase 4 terminada** (confirmada por el usuario el 2026-11-06): interfaz Tkinter en `src/aulari/ui/` (`python -m aulari`), login automático con `moodlemobile://`, sincronización con calendario, alias, «Recuperar borrados».
+- **Fase 5 cerrada** (confirmada por el usuario el 2026-11-07): nombre «Aulari» (D5), ampliación RF13–RF19, README en inglés y castellano, licencia MIT, dependencias con hashes, ejecutable PyInstaller verificado, CI en verde y flujo de versiones en GitHub Actions. Repositorio: https://github.com/ALar89/aulari.
+- Siguiente paso: hacer público el repositorio y publicar `v0.1.0` (etiqueta → compilación en GitHub con atestación). Después, solicitar la firma a SignPath. Más adelante: sincronización automática e idiomas catalán e inglés.
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
@@ -36,7 +37,7 @@ Programación estructurada clásica, código didáctico:
 - **Recursión** permitida (árbol de carpetas), con caso base explícito.
 - Variables inicializadas al principio de la función, con nombres descriptivos. Anotaciones de tipo en las firmas.
 - Funciones pequeñas: una tarea, con docstring.
-- Código, comentarios, docstrings y README **en inglés**. Rutas con `pathlib`.
+- Código, comentarios y docstrings **en inglés**. README en inglés (`README.md`) y en castellano (`README.es.md`), con el mismo contenido. Rutas con `pathlib`.
 - Tkinter: la red va en un `threading.Thread`; la interfaz solo se toca desde el hilo principal con `root.after()`. El núcleo nunca importa `tkinter`.
 
 ```python
@@ -70,21 +71,21 @@ def read_config(path: Path) -> dict:
 ## 4. Seguridad (obligatorio)
 
 - **El usuario nunca pega en el chat su token, la URL del QR ni la URL de inicio de sesión. Claude nunca los pide.** Los scripts los leen en local con `getpass.getpass()`.
-- El token se guarda **solo con `keyring`**, también en la PoC (servicio `campus-sync`, usuario `<host>|<userid>`). Nunca en texto plano, configuración, logs, tracebacks ni `print`. Para comprobarlo, mostrar solo `len(token)`.
+- El token se guarda **solo con `keyring`**, también en la PoC (servicio `aulari`, usuario `<host><ruta>|<userid>`, ver D6). Nunca en texto plano, configuración, logs, tracebacks ni `print`. Para comprobarlo, mostrar solo `len(token)`.
 - **Filtro de logging obligatorio** que censura `token=`, `wstoken=`, `privatetoken`, `userprivateaccesskey` y las rutas `/tokenpluginfile.php/<clave>/`. Los mensajes de excepción pasan por él. `urllib3` en nivel WARNING. Una prueba unitaria lo verifica.
 - Las llamadas a la API envían `wstoken` en el cuerpo POST.
-- **Nunca falsear el User-Agent** ni saltarse restricciones del servidor. User-Agent honesto: `CampusSync/<versión> (+<URL de GitHub>)`.
+- **Nunca falsear el User-Agent** ni saltarse restricciones del servidor. User-Agent honesto: `Aulari/<versión> (+<URL de GitHub>)`.
 - El cliente solo llama a una **lista blanca de funciones de lectura** escrita en el código.
 - **Claude no ejecuta nada contra un campus real.** Escribe el script y lo ejecuta el usuario, salvo que este lo pida explícitamente en ese mensaje.
-- Las respuestas reales grabadas van **fuera del repositorio**, en `%LOCALAPPDATA%\campus-sync\recordings\`. Claude no lee ese directorio sin permiso. En `tests/fixtures/` solo van versiones anonimizadas.
+- Las respuestas reales grabadas van **fuera del repositorio**, en `%LOCALAPPDATA%\aulari\recordings\`. Claude no lee ese directorio sin permiso. En `tests/fixtures/` solo van versiones anonimizadas.
 - Todo nombre que venga de Moodle pasa por `sanitize_filename()` y toda ruta final se comprueba con `resolve()` para que quede dentro del destino (reglas en `docs/design.md` §5).
 - La app **nunca abre ni ejecuta** lo que descarga.
 - Trato al servidor: descargas secuenciales, timeouts y espera creciente ante 429/503.
 
 ## 5. Entorno y comandos (Windows, PowerShell)
 
-- Python 3.14. Entorno: `py -3.14 -m venv .venv`, `.venv\Scripts\Activate.ps1`, `pip install -r requirements-dev.txt` y `pip install -e .` (paquete editable: `campus_sync` se importa sin tocar `sys.path`).
-- Dependencias fijadas en `requirements.txt` y `requirements-dev.txt`. Aprobadas: `requests`, `keyring`, `tzdata` (zonas horarias en Windows), `ruff`, y `setuptools` solo como backend de compilación (fijado en `pyproject.toml`). **Cualquier otra se pide antes de instalarla.**
+- Python 3.14. Entorno: `py -3.14 -m venv .venv`, `.venv\Scripts\Activate.ps1`, `pip install -r requirements-dev.txt` y `pip install -e .` (paquete editable: `aulari` se importa sin tocar `sys.path`).
+- Dependencias declaradas en `requirements.in` y `requirements-dev.in`, y fijadas con hashes en `requirements.txt` y `requirements-dev.txt` (`pip-compile --generate-hashes --strip-extras --allow-unsafe`). Aprobadas: `requests`, `keyring`, `tzdata` (zonas horarias en Windows), `ruff`, `pyinstaller` y `pip-tools` (solo para compilar, aprobados el 2026-11-07), y `setuptools` solo como backend de compilación (fijado en `pyproject.toml`). **Cualquier otra se pide antes de instalarla.**
 - Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
 - Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
 - Comandos de PowerShell: rutas con `\`, `Remove-Item` en lugar de `rm -rf`.
@@ -105,7 +106,7 @@ aulari/
 ├── .gitignore
 ├── docs/design.md
 ├── poc/                    # proof of concept code only, no outputs
-├── src/campus_sync/
+├── src/aulari/
 │   ├── auth.py             # login flow, token in keyring
 │   ├── moodle_client.py    # whitelisted Moodle web service calls
 │   ├── sync.py             # orchestrates a sync run
@@ -132,5 +133,5 @@ Objetivo: saber cómo se obtiene un token legítimamente en e-aules. Script de c
 2. Según el resultado, plantear al usuario el método (decisión D1 en `docs/design.md`). **No falsear el User-Agent para el QR.**
 3. Con el token obtenido: `core_webservice_get_site_info`, `core_enrol_get_users_courses` y `core_course_get_contents` de un curso. Comprobar si la URL de e-aules cambia por curso académico.
 4. Comprobar si el sitio permite la exportación nativa del calendario (`core_calendar_get_calendar_export_token`), para la decisión D3.
-5. Grabar las respuestas en `%LOCALAPPDATA%\campus-sync\recordings\`.
+5. Grabar las respuestas en `%LOCALAPPDATA%\aulari\recordings\`.
 6. Escribir en `docs/design.md` §10 lo verificado y lo descartado.

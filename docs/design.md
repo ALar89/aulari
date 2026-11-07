@@ -1,4 +1,4 @@
-# Campus Sync for Moodle: documento de diseño
+# Aulari: documento de diseño
 
 Versión 2, revisada tras una auditoría crítica (viabilidad de la API, seguridad y legal, casos límite, instrucciones para Claude Code).
 
@@ -13,7 +13,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
 | D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
 | D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
-| D5 | Nombre del proyecto | "Moodle" es marca registrada: usar la fórmula "… for Moodle" y nunca el logotipo de Moodle ni de la UAB. Pendiente de elegir nombre (se decidirá más adelante, antes de la Fase 5). |
+| D5 | Nombre del proyecto | "Moodle" es marca registrada. **Revisado el 2026-11-06:** la política de marcas de Moodle (moodle.com/trademarks) dice que no se puede usar "Moodle" en el nombre del software, sin distinguir "… for Moodle"; solo se permite describir la integración ("works with Moodle™"). Recomendado: nombre propio sin "Moodle" y la integración en la descripción; nunca el logotipo de Moodle ni de la UAB. **ACEPTADA (2026-11-06): «Aulari»** (libre en PyPI; en GitHub solo repositorios vacíos con nombres parecidos). Descripción: «Funciona con Moodle™». |
 
 ## 2. Resumen
 
@@ -37,6 +37,20 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF10 | Sincronización manual con progreso y cancelación (corte seguro entre archivos). Al terminar, resumen: nuevos, versiones nuevas, eliminados en Moodle, errores. |
 | RF11 | Primera ejecución con material ya descargado a mano: si el archivo de destino existe con el mismo tamaño, se adopta en lugar de duplicarlo. |
 | RF12 | Aviso en la primera ejecución: el material es de uso personal y no debe compartirse. |
+
+**Ampliación acordada el 2026-11-06** (antes de publicar; en este orden):
+
+| ID | Requisito |
+|---|---|
+| RF13 | Botón «Abrir carpeta» del destino en el Explorador (nunca abre archivos descargados). |
+| RF14 | Archivo `Novedades.txt` en `<destino>/<curso académico>/` con lo nuevo y actualizado de cada sincronización (sustituye a la lista en la ventana, que no cabía). |
+| RF15 | Próximas entregas y fechas en la ventana principal, a partir de los eventos del calendario. |
+| RF16 | Aviso de anuncios nuevos del foro de avisos (`news`) de cada asignatura: título y asignatura, sin guardar los foros. |
+| RF17 | Estado de las entregas propias de cada tarea (entregada o no, nota y comentarios del profesor). |
+| RF18 | Botón «Calificaciones» que abre una tabla con todas las asignaturas y su nota. |
+| RF19 | Varios cursos académicos (sitios) a la vez, según D6: selector «Curso» en la ventana, añadir y quitar cursos; cada sitio guarda su usuario, token y selección. Se sincroniza solo el curso activo. |
+
+RF16–RF18 usan funciones de lectura nuevas (`mod_forum_*`, `mod_assign_get_submission_status`, `gradereport_*`): se comprueban antes en e-aules con un script de prueba. Descartados por ahora: guardar los foros completos. Más adelante: sincronización automática e idiomas catalán e inglés.
 
 ## 4. Autenticación
 
@@ -69,17 +83,17 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 6. Registro local (SQLite)
 
-- **Ubicación:** carpeta de datos de la app (`%LOCALAPPDATA%\campus-sync\`), **nunca** dentro del destino sincronizado. Un SQLite en una carpeta de nube se corrompe.
+- **Ubicación:** carpeta de datos de la app (`%LOCALAPPDATA%\aulari\`), **nunca** dentro del destino sincronizado. Un SQLite en una carpeta de nube se corrompe.
 - **Clave de un archivo:** `(site_url, user_id, cmid, filearea, filepath, filename)`. Ni `fileurl` (cambia con `revision`) ni el ID del archivo (cambia al volver a subirlo) son estables, y la API no devuelve `contenthash`.
 - **Versión nueva:** cambia `timemodified` **o** `filesize`. Si tras descargar a temporal el SHA-256 coincide con el anterior, no se crea versión: solo se actualiza la fecha.
 - **Campos:** ruta **relativa al destino**, `timemodified`, `filesize`, `sha256`, estado (`present`, `missing`, `removed_in_moodle`).
 - **Secciones:** tabla `section_id → nombre de carpeta`, fijado al crearla. Si el profesor renombra o reordena secciones, o mueve un archivo de sección, no se mueve nada en el disco.
 - **Versión nueva de un archivo que el usuario movió o borró:** siempre se descarga; va junto a la ruta registrada si existe y, si no, a la carpeta de su sección. Se destaca en el resumen.
 - **Eliminado u oculto en Moodle:** nunca se borra en local; estado `removed_in_moodle`.
-- **Atomicidad:** descargar a `<destino>\.campus-sync-tmp\` (mismo volumen), comprobar tamaño, mover con creación exclusiva y después confirmar en el registro. Al arrancar, un archivo en la ruta esperada sin registro y con el mismo tamaño se adopta.
+- **Atomicidad:** descargar a `<destino>\.aulari-tmp\` (mismo volumen), comprobar tamaño, mover con creación exclusiva y después confirmar en el registro. Al arrancar, un archivo en la ruta esperada sin registro y con el mismo tamaño se adopta.
 - **Archivos solo en la nube** (placeholders de Proton u OneDrive): la app solo comprueba si existen; nunca lee su contenido.
 - **Bloqueo:** un archivo de bloqueo impide dos instancias a la vez. Un archivo abierto por otro programa es un error de ese archivo y se reintenta en la próxima sincronización.
-- **Equipo propietario (D2):** `<destino>\.campus-sync\owner.json` con el ID de la máquina. Otra instancia que lo encuentre se niega a sincronizar y ofrece "tomar el relevo".
+- **Equipo propietario (D2):** `<destino>\.aulari\owner.json` con el ID de la máquina. Otra instancia que lo encuentre se niega a sincronizar y ofrece "tomar el relevo".
 
 ## 7. API de Moodle
 
@@ -179,9 +193,25 @@ Calendario y tareas (`poc/explore_assign_calendar.py`, 2026-11-06):
 - Cambio de alias (RF4): `SO` → `SO-Renombrada` mueve la carpeta y la siguiente sincronización la encuentra.
 - «Recuperar borrados» (RF8): con un archivo borrado a mano, resumen con 1 recuperado y 33 sin cambios.
 
+### Ampliación: avisos, entregas y notas (verificado el 2026-11-06, `poc/explore_extras.py`)
+
+Todas las funciones responden a un estudiante en e-aules:
+- `mod_forum_get_forums_by_courses`: 15 foros visibles, 9 de tipo `news` (uno por asignatura). `mod_forum_get_forum_discussions`: devuelve `id`, `name`/`subject`, `message` (HTML), `timemodified`, `created`, `pinned`, `numunread`, `userfullname`… (RF16).
+- `mod_assign_get_submission_status` (por `assignid`, no `cmid`): `lastattempt.submission.status` (`submitted`…), `feedback.gradefordisplay` cuando hay nota; sin `feedback` si aún no está corregida (RF17).
+- `gradereport_overview_get_course_grades`: 8 cursos con `courseid`, `grade`, `rawgrade`; 3 con nota (RF18).
+- `gradereport_user_get_grade_items` (una asignatura): 23 ítems con `itemname`, `gradeformatted`, `rangeformatted`, `percentageformatted`, `feedback`, `gradeishidden`… (RF18).
+- Las respuestas contienen datos personales (notas, nombres): solo se guardan en local y nunca se registran en el log.
+- **RF19 verificado (2026-11-07):** añadir `e-aules.uab.cat/2025-26`, iniciar sesión y volver a 2026-27 con el selector conserva la sesión y la selección de cada curso.
+
 ### Fase 4: cerrar sesión (verificado el 2026-11-06)
 
 - En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
+
+### Fase 5: ejecutable (verificado el 2026-11-07)
+
+- `pyinstaller --clean --noconfirm aulari.spec` genera `dist/Aulari/Aulari.exe` (`--onedir`, sin consola, 31 MB) con los textos, `tzdata`, Tk y los backends de `keyring`.
+- Probado por el usuario: la ventana abre sin consola, la sesión guardada en el keyring sigue válida, el inicio de sesión muestra «Open Aulari?» gracias al recurso de versión (`packaging/version_info.txt`) y la sincronización funciona.
+- Dependencias fijadas con hashes (`requirements*.txt` generados con pip-tools); un entorno limpio instala con `--require-hashes`.
 
 ## 11. Legal y distribución
 

@@ -1,4 +1,4 @@
-"""Phase 2 check: download ONE file with campus_sync.moodle_client.
+"""Phase 2 check: download ONE file with aulari.moodle_client.
 
 Verifies that webservice/pluginfile.php accepts the token in the POST body.
 It picks the smallest file of the given course, downloads it to poc\\out\\
@@ -17,9 +17,9 @@ import keyring.errors
 import requests
 from moodle_ws import KEYRING_SERVICE, keyring_username
 
-from campus_sync.log_filter import configure_logging
-from campus_sync.moodle_client import InvalidTokenError, MoodleClient, MoodleError
-from campus_sync.organizer import ensure_inside, sanitize_filename
+from aulari.log_filter import configure_logging
+from aulari.moodle_client import InvalidTokenError, MoodleClient, MoodleError
+from aulari.organizer import ensure_inside, sanitize_filename
 
 EXPECTED_ARGS = 4  # script name + site URL + user id + course id
 OUTPUT_DIR = Path(__file__).resolve().parent / "out"

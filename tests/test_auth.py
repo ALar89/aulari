@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.auth, with an in-memory keyring and no network."""
+"""Unit tests for aulari.auth, with an in-memory keyring and no network."""
 
 import base64
 import hashlib
@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, quote, urlparse
 import keyring
 from keyring.backend import KeyringBackend
 
-from campus_sync import auth
+from aulari import auth
 
 SITE = "https://moodle.example.test/2026-27"
 PASSPORT = "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
@@ -188,9 +188,7 @@ class LoginTests(KeyringTestCase):
         url = make_redirect(SITE, PASSPORT, TOKEN, PRIVATE_TOKEN)
         user_id = auth.login(SITE + "/", url, PASSPORT, client_factory=FakeClient)
         self.assertEqual(user_id, USER_ID)
-        self.assertEqual(
-            self.memory.store, {("campus-sync", "moodle.example.test/2026-27|42"): TOKEN}
-        )
+        self.assertEqual(self.memory.store, {("aulari", "moodle.example.test/2026-27|42"): TOKEN})
         self.assertNotIn(PRIVATE_TOKEN, repr(self.memory.store))
         self.assertEqual(FakeClient.instances[0].site_url, SITE)
 

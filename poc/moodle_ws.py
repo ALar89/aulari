@@ -8,9 +8,9 @@ from urllib.parse import urlparse
 
 import requests
 
-USER_AGENT = "CampusSync/0.1.0-poc (+https://github.com/TODO/campus-sync)"
+USER_AGENT = "Aulari/0.1.0-poc (+https://github.com/ALar89/aulari)"
 TIMEOUT_SECONDS = 30
-KEYRING_SERVICE = "campus-sync"
+KEYRING_SERVICE = "aulari"
 
 # Only these read-only web service functions may be called (design.md section 7).
 ALLOWED_FUNCTIONS = {
@@ -20,6 +20,12 @@ ALLOWED_FUNCTIONS = {
     "core_calendar_get_calendar_export_token",
     "core_calendar_get_calendar_events",
     "mod_assign_get_assignments",
+    # Block 2 checks (RF16-RF18): all read-only.
+    "mod_forum_get_forums_by_courses",
+    "mod_forum_get_forum_discussions",
+    "mod_assign_get_submission_status",
+    "gradereport_overview_get_course_grades",
+    "gradereport_user_get_grade_items",
 }
 
 

@@ -11,12 +11,12 @@ import unittest
 import keyring.errors
 import requests
 
-from campus_sync.app import AppError
-from campus_sync.moodle_client import InvalidTokenError, MoodleError
-from campus_sync.sync import NotOwnerError, SyncLockedError
-from campus_sync.texts import text
-from campus_sync.ui.messages import error_message
-from campus_sync.ui.worker import UnexpectedError, Worker
+from aulari.app import AppError
+from aulari.moodle_client import InvalidTokenError, MoodleError
+from aulari.sync import NotOwnerError, SyncLockedError
+from aulari.texts import text
+from aulari.ui.messages import error_message
+from aulari.ui.worker import UnexpectedError, Worker
 
 TOKEN = "0123456789abcdef0123456789abcdef"
 TIMEOUT_MS = 3000

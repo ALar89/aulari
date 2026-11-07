@@ -1,11 +1,11 @@
-"""Unit tests for campus_sync.organizer."""
+"""Unit tests for aulari.organizer."""
 
 import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-from campus_sync import organizer
+from aulari import organizer
 
 
 class SanitizeFilenameTests(unittest.TestCase):

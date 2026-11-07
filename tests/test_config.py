@@ -1,4 +1,4 @@
-"""Unit tests for campus_sync.config and campus_sync.texts."""
+"""Unit tests for aulari.config and aulari.texts."""
 
 import json
 import string
@@ -7,8 +7,8 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-from campus_sync import config, texts
-from campus_sync.config import Settings
+from aulari import config, texts
+from aulari.config import Settings
 
 
 class DefaultSiteTests(unittest.TestCase):
@@ -28,7 +28,7 @@ class SettingsFileTests(unittest.TestCase):
     def setUp(self) -> None:
         """Create an empty app folder."""
         self.folder = tempfile.TemporaryDirectory()
-        self.app_dir = Path(self.folder.name) / "campus-sync"
+        self.app_dir = Path(self.folder.name) / "aulari"
 
     def tearDown(self) -> None:
         """Delete the folder."""
@@ -80,7 +80,7 @@ class SettingsFileTests(unittest.TestCase):
 
 
 class TextsTests(unittest.TestCase):
-    """Tests for campus_sync.texts and the Spanish strings file."""
+    """Tests for aulari.texts and the Spanish strings file."""
 
     def test_placeholders_are_filled(self) -> None:
         """text() fills {placeholders}."""
@@ -96,6 +96,40 @@ class TextsTests(unittest.TestCase):
         for key, value in texts.load_strings().items():
             self.assertTrue(value.strip(), key)
             list(string.Formatter().parse(value))
+
+
+class OtherSitesTests(unittest.TestCase):
+    """other_sites in the config file (RF19)."""
+
+    def test_old_files_and_invalid_entries(self) -> None:
+        """A missing list gives []; invalid entries are dropped, valid ones cleaned."""
+        self.assertEqual(config.settings_from_dict({}).other_sites, [])
+        data = {
+            "other_sites": [
+                {"site_url": "https://x.test/2025-26", "user_id": 42, "selected_courses": [1]},
+                {"site_url": ""},
+                "not a dict",
+                {"site_url": "https://x.test/2024-25", "user_id": "bad"},
+            ]
+        }
+        sites = config.settings_from_dict(data).other_sites
+        self.assertEqual(
+            sites,
+            [
+                {
+                    "site_url": "https://x.test/2025-26",
+                    "user_id": 42,
+                    "selected_courses": [1],
+                    "known_courses": [],
+                },
+                {
+                    "site_url": "https://x.test/2024-25",
+                    "user_id": 0,
+                    "selected_courses": [],
+                    "known_courses": [],
+                },
+            ],
+        )
 
 
 if __name__ == "__main__":
