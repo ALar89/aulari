@@ -17,8 +17,8 @@ Homepage = "https://github.com/ALar89/aulari"
 Issues = "https://github.com/ALar89/aulari/issues"
 
 [tool.setuptools.package-data]
-# UI texts are data files inside the package.
-aulari = ["strings/*.json"]
+# UI texts and the icon are data files inside the package.
+aulari = ["strings/*.json", "assets/*.ico"]
 
 [tool.ruff]
 line-length = 100

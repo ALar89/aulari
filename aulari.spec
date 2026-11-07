@@ -4,8 +4,8 @@
 # Output: dist/Aulari/Aulari.exe (build/ and dist/ are ignored by git).
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-# UI texts are data files inside the package.
-datas = collect_data_files("aulari", includes=["strings/*.json"])
+# UI texts and the window icon are data files inside the package.
+datas = collect_data_files("aulari", includes=["strings/*.json", "assets/*.ico"])
 # The licenses travel with the executable (MIT for Aulari, others for dependencies).
 datas += [("LICENSE", "."), ("THIRD_PARTY_LICENSES", ".")]
 # keyring picks its backend at run time (Windows Credential Manager).
@@ -29,5 +29,7 @@ exe = EXE(
     console=False,
     upx=False,
     version="packaging/version_info.txt",
+    # Built from packaging/aulari-logo-1024.png by packaging/make_icon.py.
+    icon="src/aulari/assets/aulari.ico",
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="Aulari", upx=False)

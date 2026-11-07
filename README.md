@@ -1,3 +1,5 @@
+<p align="center"><img src="packaging/aulari-logo-1024.png" alt="Aulari logo: a folder with a download arrow" width="128"></p>
+
 # Aulari
 
 **Download and organize the material of your campus. Works with Moodle™.**

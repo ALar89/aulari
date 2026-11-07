@@ -20,6 +20,7 @@ from aulari.app import CampusApp
 from aulari.background import run_background
 from aulari.log_filter import configure_logging
 from aulari.texts import detect_language, set_language, text
+from aulari.ui.icon import set_window_icon
 from aulari.ui.login_handoff import send_to_running_app
 from aulari.ui.main import LOG_DIR_NAME, LOG_FILE_NAME, default_app_dir, run
 from aulari.ui.notice import NoticeWindow
@@ -40,6 +41,7 @@ def handle_callback(url: str) -> None:
     if not sent:
         set_language(detect_language())
         root = tk.Tk()
+        set_window_icon(root)
         root.withdraw()  # only the message box, no empty main window
         messagebox.showinfo(text("app_title"), text("callback_no_app"), parent=root)
         root.destroy()

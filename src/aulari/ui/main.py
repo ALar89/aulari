@@ -17,6 +17,7 @@ from aulari.log_filter import configure_logging
 from aulari.texts import LANGUAGES, current_language, detect_language, set_language, text
 from aulari.ui import url_handler
 from aulari.ui.home_frame import HomeFrame
+from aulari.ui.icon import set_window_icon
 from aulari.ui.login_frame import LoginFrame
 from aulari.ui.messages import error_message
 from aulari.ui.worker import Worker, log_thread_exceptions
@@ -144,6 +145,7 @@ def run() -> None:
     log_thread_exceptions()
     set_language(detect_language())
     root = tk.Tk()
+    set_window_icon(root)
     root.title(text("app_title"))
     root.minsize(MIN_WIDTH, MIN_HEIGHT)
     try:

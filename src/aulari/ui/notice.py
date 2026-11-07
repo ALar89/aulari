@@ -11,6 +11,7 @@ from collections.abc import Callable
 from tkinter import ttk
 
 from aulari.texts import text
+from aulari.ui.icon import set_window_icon
 
 PADDING = 12
 WIDTH = 360
@@ -40,6 +41,7 @@ class NoticeWindow:
         self._root = root
         self._app_command = app_command
         self._launcher = launcher
+        set_window_icon(root)
         root.title(text("app_title"))
         root.resizable(False, False)
         root.attributes("-topmost", True)

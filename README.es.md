@@ -1,3 +1,5 @@
+<p align="center"><img src="packaging/aulari-logo-1024.png" alt="Logo de Aulari: una carpeta con una flecha de descarga" width="128"></p>
+
 # Aulari
 
 **Descarga y ordena el material de tu campus. Funciona con Moodle™.**
