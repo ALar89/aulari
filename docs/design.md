@@ -207,6 +207,12 @@ Todas las funciones responden a un estudiante en e-aules:
 
 - En e-aules, Preferencias solo muestra perfil, idioma, foro, editor, calendario, banco de contenidos, mensajes, notificaciones e insignias: **no hay «Claves de seguridad»**. El texto de «Cerrar sesión» dice que el token sigue válido hasta que caduca y que, si se ha filtrado, hay que avisar al soporte del campus.
 
+### Fase 5: ejecutable (verificado el 2026-11-07)
+
+- `pyinstaller --clean --noconfirm aulari.spec` genera `dist/Aulari/Aulari.exe` (`--onedir`, sin consola, 31 MB) con los textos, `tzdata`, Tk y los backends de `keyring`.
+- Probado por el usuario: la ventana abre sin consola, la sesión guardada en el keyring sigue válida, el inicio de sesión muestra «Open Aulari?» gracias al recurso de versión (`packaging/version_info.txt`) y la sincronización funciona.
+- Dependencias fijadas con hashes (`requirements*.txt` generados con pip-tools); un entorno limpio instala con `--require-hashes`.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
