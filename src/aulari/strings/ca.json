@@ -122,5 +122,18 @@
   "site_header": "== Curs {site} ==",
   "site_skipped_no_courses": "Sense assignatures marcades: no s'ha sincronitzat.",
   "site_skipped_no_session": "Sense sessió iniciada: entra en aquest curs i inicia la sessió.",
-  "language_label": "Idioma:"
+  "language_label": "Idioma:",
+  "auto_sync_label": "Sincronitza automàticament",
+  "auto_every_24": "un cop al dia",
+  "auto_every_12": "cada 12 hores",
+  "auto_every_6": "cada 6 hores",
+  "auto_sync_on": "Sincronització automàtica activada ({label}, i en iniciar Windows).",
+  "auto_sync_off": "Sincronització automàtica desactivada.",
+  "error_scheduler": "No s'ha pogut configurar el Programador de tasques de Windows.",
+  "notice_title": "Aulari: hi ha novetats al campus.",
+  "notice_new_files": "{count} fitxers nous",
+  "notice_new_versions": "{count} versions noves",
+  "notice_announcements": "{count} avisos nous",
+  "notice_session_expired": "La sessió del curs {site} ha caducat: obre Aulari i inicia la sessió.",
+  "notice_open_app": "Obre Aulari"
 }

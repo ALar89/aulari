@@ -36,6 +36,8 @@ class Settings:
     known_courses: list[int] = field(default_factory=list)
     first_run_notice_seen: bool = False
     language: str = ""  # '' = follow the system language
+    auto_sync_hours: int = 0  # 0 = automatic sync off (D7)
+    last_background_sync: float = 0.0  # Unix time of the last background run
     # Other academic year sites (RF19): dicts with site_url, user_id,
     # selected_courses and known_courses. The active site uses the fields above.
     other_sites: list[dict] = field(default_factory=list)
@@ -82,6 +84,10 @@ def settings_from_dict(data: dict) -> Settings:
         result.first_run_notice_seen = data["first_run_notice_seen"]
     if isinstance(data.get("language"), str):
         result.language = data["language"]
+    if isinstance(data.get("auto_sync_hours"), int):
+        result.auto_sync_hours = data["auto_sync_hours"]
+    if isinstance(data.get("last_background_sync"), (int, float)):
+        result.last_background_sync = float(data["last_background_sync"])
     if isinstance(data.get("other_sites"), list):
         sites = [site_from_dict(item) for item in data["other_sites"]]
         result.other_sites = [site for site in sites if site is not None]

@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import subprocess
 import tempfile
 import unittest
 from datetime import UTC, datetime
@@ -504,6 +505,26 @@ class SyncAllTests(AppTestCase):
         results = {item.site_url: item for item in self.app.run_sync_all()}
         self.assertEqual(results[self.old].skipped_key, "site_skipped_no_session")
         self.assertIsNotNone(results[SITE].result)
+
+
+class AutoSyncSettingTests(AppTestCase):
+    """set_auto_sync() with a fake schtasks runner (never the real scheduler)."""
+
+    def test_on_and_off(self) -> None:
+        """Turning it on creates the task and saves the interval; off deletes it."""
+        calls = []
+
+        def runner(arguments: list[str]) -> subprocess.CompletedProcess:
+            """Record the call; the task exists once created."""
+            calls.append(arguments[1])
+            code = 0 if arguments[1] != "/Query" or "/Create" in calls else 1
+            return subprocess.CompletedProcess(arguments, code, "", "")
+
+        self.app.set_auto_sync(24, runner)
+        self.assertEqual(CampusApp(self.app.app_dir).settings.auto_sync_hours, 24)
+        self.app.set_auto_sync(0, runner)
+        self.assertEqual(self.app.settings.auto_sync_hours, 0)
+        self.assertEqual(calls, ["/Create", "/Query", "/Delete"])
 
 
 if __name__ == "__main__":

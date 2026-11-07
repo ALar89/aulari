@@ -13,6 +13,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
 | D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
 | D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
+| D7 | Sincronización automática | **ACEPTADA (2026-11-07):** tarea del Programador de tareas de Windows solo para el usuario (`Aulari.exe --background`), al iniciar sesión y cada 24 h por defecto (opciones: 12 h, 6 h; nunca menos de 6 h). Sin dependencias nuevas; aviso en una ventana pequeña propia solo si hay archivos o avisos nuevos, o si la sesión ha caducado. |
 | D5 | Nombre del proyecto | "Moodle" es marca registrada. **Revisado el 2026-11-06:** la política de marcas de Moodle (moodle.com/trademarks) dice que no se puede usar "Moodle" en el nombre del software, sin distinguir "… for Moodle"; solo se permite describir la integración ("works with Moodle™"). Recomendado: nombre propio sin "Moodle" y la integración en la descripción; nunca el logotipo de Moodle ni de la UAB. **ACEPTADA (2026-11-06): «Aulari»** (libre en PyPI; en GitHub solo repositorios vacíos con nombres parecidos). Descripción: «Funciona con Moodle™». |
 
 ## 2. Resumen
@@ -255,4 +256,4 @@ Todas las funciones responden a un estudiante en e-aules:
 
 ## 14. Fuera de alcance v1
 
-El HTML de las páginas (sí sus archivos incrustados) y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
+El HTML de las páginas (sí sus archivos incrustados) y vídeos, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.

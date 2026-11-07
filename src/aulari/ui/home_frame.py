@@ -20,6 +20,7 @@ from aulari import organizer
 from aulari.app import AppError, CampusApp, CourseChoice, SyncResult
 from aulari.extras import Announcement, CourseGrade
 from aulari.moodle_client import InvalidTokenError
+from aulari.scheduler import ALLOWED_HOURS, SchedulerError
 from aulari.sync import NotOwnerError, Progress
 from aulari.texts import text
 from aulari.ui.messages import error_message
@@ -138,6 +139,8 @@ class HomeFrame(ttk.Frame):
         self._open_button = ttk.Button(row, text=text("open_folder"), command=self._open_folder)
         self._open_button.pack(side="left", padx=(PADDING, 0))
 
+        self._build_auto_row()
+
         buttons = ttk.Frame(self)
         buttons.pack(fill="x", pady=(PADDING, 0))
         self._sync_button = ttk.Button(buttons, text=text("sync_button"), command=self._sync)
@@ -178,6 +181,28 @@ class HomeFrame(ttk.Frame):
         ttk.Label(self, textvariable=self._status, wraplength=WRAP_PIXELS, justify="left").pack(
             anchor="w", pady=(PADDING, 0)
         )
+
+    def _build_auto_row(self) -> None:
+        """Create the automatic sync checkbox and interval selector (D7)."""
+        auto_row = ttk.Frame(self)
+        auto_row.pack(fill="x", pady=(PADDING // 2, 0))
+        self._auto = tk.BooleanVar(value=self._app.settings.auto_sync_hours > 0)
+        self._auto_check = ttk.Checkbutton(
+            auto_row, text=text("auto_sync_label"), variable=self._auto, command=self._auto_changed
+        )
+        self._auto_check.pack(side="left")
+        self._auto_labels = {text(f"auto_every_{hours}"): hours for hours in ALLOWED_HOURS}
+        current = self._app.settings.auto_sync_hours or ALLOWED_HOURS[0]
+        self._auto_interval = tk.StringVar(value=text(f"auto_every_{current}"))
+        self._auto_box = ttk.Combobox(
+            auto_row,
+            textvariable=self._auto_interval,
+            values=list(self._auto_labels),
+            state="readonly",
+            width=16,
+        )
+        self._auto_box.pack(side="left", padx=(PADDING // 2, 0))
+        self._auto_box.bind("<<ComboboxSelected>>", self._auto_changed)
 
     def _set_busy(self, busy: bool, syncing: bool = False) -> None:
         """Enable or disable the controls while a background task runs."""
@@ -327,6 +352,18 @@ class HomeFrame(ttk.Frame):
                 NewsWindow(self, path)
             except OSError as error:
                 self._status.set(error_message(error))
+
+    def _auto_changed(self, _event: tk.Event | None = None) -> None:
+        """Create, change or delete the automatic sync task (D7)."""
+        hours = self._auto_labels.get(self._auto_interval.get(), ALLOWED_HOURS[0])
+        wanted = hours if self._auto.get() else 0
+        try:
+            self._app.set_auto_sync(wanted)
+            key = "auto_sync_on" if wanted else "auto_sync_off"
+            self._status.set(text(key, label=self._auto_interval.get()))
+        except (SchedulerError, ValueError, OSError) as error:
+            self._auto.set(self._app.settings.auto_sync_hours > 0)
+            self._status.set(error_message(error))
 
     # --- sync ----------------------------------------------------------
 
