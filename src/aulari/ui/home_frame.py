@@ -16,6 +16,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import keyring.errors
 
+from aulari import organizer
 from aulari.app import AppError, CampusApp, CourseChoice, SyncResult
 from aulari.extras import Announcement, CourseGrade
 from aulari.moodle_client import InvalidTokenError
@@ -39,6 +40,13 @@ from aulari.ui.worker import Worker
 PADDING = 12
 
 
+def site_label(site_url: str) -> str:
+    """Return the academic year of a site ('2026-27'), or its URL if it has none."""
+    year = organizer.academic_year_from_site(site_url)
+    result = year if year is not None else site_url
+    return result
+
+
 def open_in_explorer(folder: Path) -> None:
     """Show a folder in the system file explorer (Windows: Explorer)."""
     if sys.platform == "win32":
@@ -59,12 +67,16 @@ class HomeFrame(ttk.Frame):
         app: CampusApp,
         worker: Worker,
         on_logged_out: Callable[[], None],
+        on_site_changed: Callable[[], None],
     ) -> None:
         """Build the widgets and start loading the course list."""
         super().__init__(parent, padding=PADDING)
         self._app = app
         self._worker = worker
         self._on_logged_out = on_logged_out
+        self._on_site_changed = on_site_changed
+        self._site_urls = {site_label(url): url for url in app.sites()}
+        self._site = tk.StringVar(value=site_label(app.settings.site_url))
         self._choices: list[CourseChoice] = []
         self._checks: dict[int, tk.BooleanVar] = {}
         self._cancel = threading.Event()
@@ -82,9 +94,20 @@ class HomeFrame(ttk.Frame):
         """Create and place the widgets."""
         top = ttk.Frame(self)
         top.pack(fill="x")
-        ttk.Label(top, text=text("logged_in_as", site=self._app.settings.site_url)).pack(
-            side="left"
+        ttk.Label(top, text=text("site_label")).pack(side="left")
+        self._site_box = ttk.Combobox(
+            top, textvariable=self._site, values=list(self._site_urls), state="readonly", width=12
         )
+        self._site_box.pack(side="left", padx=(PADDING // 2, 0))
+        self._site_box.bind("<<ComboboxSelected>>", self._site_selected)
+        self._add_site_button = ttk.Button(
+            top, text=text("add_site_button"), command=self._add_site
+        )
+        self._add_site_button.pack(side="left", padx=(PADDING, 0))
+        self._remove_site_button = ttk.Button(
+            top, text=text("remove_site_button"), command=self._remove_site
+        )
+        self._remove_site_button.pack(side="left", padx=(PADDING // 2, 0))
         self._logout_button = ttk.Button(top, text=text("logout_button"), command=self._logout)
         self._logout_button.pack(side="right")
 
@@ -163,6 +186,9 @@ class HomeFrame(ttk.Frame):
         self._choose_button.configure(state=state)
         self._open_button.configure(state=state)
         self._logout_button.configure(state=state)
+        self._add_site_button.configure(state=state)
+        self._remove_site_button.configure(state=state)
+        self._site_box.configure(state="disabled" if busy else "readonly")
         self._cancel_button.configure(state="normal" if syncing else "disabled")
         for row in self._courses.winfo_children():
             for widget in row.winfo_children():
@@ -430,6 +456,44 @@ class HomeFrame(ttk.Frame):
             self._sync()
         except (AppError, OSError) as error:
             self._status.set(error_message(error))
+
+    # --- academic year sites (RF19) -------------------------------------
+
+    def _site_selected(self, _event: tk.Event) -> None:
+        """Switch to the academic year chosen in the selector."""
+        url = self._site_urls.get(self._site.get(), self._app.settings.site_url)
+        try:
+            self._app.switch_site(url)
+            self._on_site_changed()
+        except (AppError, OSError) as error:
+            self._status.set(error_message(error))
+
+    def _add_site(self) -> None:
+        """Ask for the URL of another academic year and log in to it."""
+        url = simpledialog.askstring(
+            text("app_title"),
+            text("add_site_prompt"),
+            initialvalue=self._app.suggested_site_url(),
+            parent=self,
+        )
+        if url:
+            try:
+                self._app.add_site(url)
+                self._on_site_changed()
+            except (AppError, OSError) as error:
+                self._status.set(error_message(error))
+
+    def _remove_site(self) -> None:
+        """Forget the current academic year (and its token) after confirming."""
+        label = site_label(self._app.settings.site_url)
+        if messagebox.askyesno(
+            text("app_title"), text("remove_site_confirm", site=label), parent=self
+        ):
+            try:
+                self._app.remove_site(self._app.settings.site_url)
+                self._on_site_changed()
+            except (AppError, OSError, keyring.errors.KeyringError) as error:
+                self._status.set(error_message(error))
 
     # --- errors and session --------------------------------------------
 

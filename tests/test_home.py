@@ -93,6 +93,10 @@ class FakeApp:
         self.selection = None
         self.synced_with = None
 
+    def sites(self) -> list[str]:
+        """Return the only saved site."""
+        return [self.settings.site_url]
+
     def list_courses(self) -> list[CourseChoice]:
         """Return the two test courses."""
         return list(CHOICES)
@@ -125,7 +129,7 @@ class HomeFrameSmokeTests(unittest.TestCase):
             self.skipTest("No display available for Tkinter")
         self.root.withdraw()
         self.app = FakeApp()
-        self.frame = HomeFrame(self.root, self.app, Worker(self.root), lambda: None)
+        self.frame = HomeFrame(self.root, self.app, Worker(self.root), lambda: None, lambda: None)
         self.frame.pack()
 
     def tearDown(self) -> None:

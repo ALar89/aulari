@@ -109,5 +109,13 @@
   "status_draft": "Borrador",
   "status_error": "No disponible",
   "yes": "Sí",
-  "no_rows": "No hay datos para mostrar."
+  "no_rows": "No hay datos para mostrar.",
+  "site_label": "Curso:",
+  "add_site_button": "Añadir curso…",
+  "remove_site_button": "Quitar curso",
+  "add_site_prompt": "Dirección del campus del otro curso académico:",
+  "remove_site_confirm": "¿Quitar el curso {site} de la aplicación? Se borrará su sesión de este equipo; los archivos descargados no se tocan.",
+  "error_site_exists": "Ese curso ya está en la lista.",
+  "error_site_unknown": "Ese curso no está en la lista.",
+  "login_back": "Volver al curso anterior"
 }

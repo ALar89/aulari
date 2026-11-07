@@ -35,6 +35,9 @@ class Settings:
     selected_courses: list[int] = field(default_factory=list)
     known_courses: list[int] = field(default_factory=list)
     first_run_notice_seen: bool = False
+    # Other academic year sites (RF19): dicts with site_url, user_id,
+    # selected_courses and known_courses. The active site uses the fields above.
+    other_sites: list[dict] = field(default_factory=list)
 
 
 def _int_list(value: object) -> list[int] | None:
@@ -42,6 +45,20 @@ def _int_list(value: object) -> list[int] | None:
     result = None
     if isinstance(value, list) and all(isinstance(item, int) for item in value):
         result = list(value)
+    return result
+
+
+def site_from_dict(data: object) -> dict | None:
+    """Return a clean saved-site dict, or None if data is not a valid one."""
+    result = None
+    if isinstance(data, dict) and isinstance(data.get("site_url"), str) and data["site_url"]:
+        user_id = data.get("user_id")
+        result = {
+            "site_url": data["site_url"],
+            "user_id": user_id if isinstance(user_id, int) else 0,
+            "selected_courses": _int_list(data.get("selected_courses")) or [],
+            "known_courses": _int_list(data.get("known_courses")) or [],
+        }
     return result
 
 
@@ -62,6 +79,9 @@ def settings_from_dict(data: dict) -> Settings:
         result.known_courses = known
     if isinstance(data.get("first_run_notice_seen"), bool):
         result.first_run_notice_seen = data["first_run_notice_seen"]
+    if isinstance(data.get("other_sites"), list):
+        sites = [site_from_dict(item) for item in data["other_sites"]]
+        result.other_sites = [site for site in sites if site is not None]
     return result
 
 

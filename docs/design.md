@@ -48,7 +48,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF16 | Aviso de anuncios nuevos del foro de avisos (`news`) de cada asignatura: título y asignatura, sin guardar los foros. |
 | RF17 | Estado de las entregas propias de cada tarea (entregada o no, nota y comentarios del profesor). |
 | RF18 | Botón «Calificaciones» que abre una tabla con todas las asignaturas y su nota. |
-| RF19 | Varios cursos académicos (sitios) a la vez, según D6. |
+| RF19 | Varios cursos académicos (sitios) a la vez, según D6: selector «Curso» en la ventana, añadir y quitar cursos; cada sitio guarda su usuario, token y selección. Se sincroniza solo el curso activo. |
 
 RF16–RF18 usan funciones de lectura nuevas (`mod_forum_*`, `mod_assign_get_submission_status`, `gradereport_*`): se comprueban antes en e-aules con un script de prueba. Descartados por ahora: guardar los foros completos. Más adelante: sincronización automática e idiomas catalán e inglés.
 

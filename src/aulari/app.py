@@ -107,10 +107,117 @@ class CampusApp:
         """Save the settings. Raises: OSError."""
         save_settings(self.app_dir, self.settings)
 
+    # --- several academic years (RF19) ---------------------------------
+
+    def _active_site(self) -> dict:
+        """Return the active site as a saved-site dict."""
+        result = {
+            "site_url": self.settings.site_url,
+            "user_id": self.settings.user_id,
+            "selected_courses": list(self.settings.selected_courses),
+            "known_courses": list(self.settings.known_courses),
+        }
+        return result
+
+    def _load_site(self, site: dict) -> None:
+        """Make a saved site the active one."""
+        self.settings.site_url = site["site_url"]
+        self.settings.user_id = site["user_id"]
+        self.settings.selected_courses = list(site["selected_courses"])
+        self.settings.known_courses = list(site["known_courses"])
+
+    def _find_other(self, site_url: str) -> dict | None:
+        """Return the saved (inactive) site with that URL, or None."""
+        result = None
+        index = 0
+        while index < len(self.settings.other_sites) and result is None:
+            if self.settings.other_sites[index]["site_url"] == site_url:
+                result = self.settings.other_sites[index]
+            index = index + 1
+        return result
+
+    def sites(self) -> list[str]:
+        """Return the URLs of every saved site, sorted (newest academic year last)."""
+        urls = [site["site_url"] for site in self.settings.other_sites]
+        result = sorted([self.settings.site_url, *urls])
+        return result
+
+    def previous_site(self) -> str | None:
+        """Return the site that was active before the current one, if any."""
+        result = None
+        if self.settings.other_sites:
+            result = self.settings.other_sites[-1]["site_url"]
+        return result
+
+    def suggested_site_url(self) -> str:
+        """Return the current URL with the previous academic year ('2026-27' -> '2025-26')."""
+        result = self.settings.site_url
+        year = organizer.academic_year_from_site(result)
+        if year is not None:
+            first = int(year[:4]) - 1
+            result = result.replace(year, f"{first}-{(first + 1) % 100:02d}")
+        return result
+
+    def switch_site(self, site_url: str) -> None:
+        """Make another saved site active; the current one is kept in the list.
+
+        Raises: AppError('error_site_unknown'); OSError when saving.
+        """
+        clean = site_url.strip().rstrip("/")
+        if clean != self.settings.site_url:
+            target = self._find_other(clean)
+            if target is None:
+                raise AppError("error_site_unknown")
+            self.settings.other_sites.remove(target)
+            self.settings.other_sites.append(self._active_site())
+            self._load_site(target)
+            self.save()
+
+    def add_site(self, site_url: str) -> None:
+        """Add a new academic year site and make it active (the user then logs in).
+
+        Raises: AppError('error_site_exists' or 'error_no_year'); OSError.
+        """
+        clean = site_url.strip().rstrip("/")
+        if clean in self.sites():
+            raise AppError("error_site_exists")
+        if organizer.academic_year_from_site(clean) is None:
+            raise AppError("error_no_year")
+        self.settings.other_sites.append(self._active_site())
+        self._load_site(
+            {"site_url": clean, "user_id": 0, "selected_courses": [], "known_courses": []}
+        )
+        self.save()
+
+    def remove_site(self, site_url: str) -> None:
+        """Forget a site and delete its token; removing the active one activates another.
+
+        The last remaining site is only logged out.
+
+        Raises: AppError('error_site_unknown'); keyring.errors.KeyringError; OSError.
+        """
+        clean = site_url.strip().rstrip("/")
+        if clean == self.settings.site_url:
+            self.logout()
+            if self.settings.other_sites:
+                self._load_site(self.settings.other_sites.pop())
+                self.save()
+        else:
+            target = self._find_other(clean)
+            if target is None:
+                raise AppError("error_site_unknown")
+            if target["user_id"] > 0:
+                auth.delete_token(clean, target["user_id"])
+            self.settings.other_sites.remove(target)
+            self.save()
+
     def set_site_url(self, site_url: str) -> None:
         """Change the site; the user must log in again for a new site."""
         clean = site_url.strip().rstrip("/")
-        if clean != self.settings.site_url:
+        if self._find_other(clean) is not None:
+            # A saved site: switch to it instead of creating a duplicate (RF19).
+            self.switch_site(clean)
+        elif clean != self.settings.site_url:
             self.settings.site_url = clean
             self.settings.user_id = 0
             self.settings.selected_courses = []

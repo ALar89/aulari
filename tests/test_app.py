@@ -401,5 +401,66 @@ class ExtrasTests(AppTestCase):
         self.assertEqual((items[1].name, items[1].grade), ("course", "—"))
 
 
+class SitesTests(AppTestCase):
+    """Several academic year sites (RF19)."""
+
+    def setUp(self) -> None:
+        """Log in to 2026-27 and select a course."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([1072])
+
+    def test_add_switch_and_back(self) -> None:
+        """Each site keeps its own user and selection when switching."""
+        old = "https://moodle.example.test/2025-26"
+        self.assertEqual(self.app.suggested_site_url(), old)
+        self.app.add_site(old)
+        self.assertEqual(self.app.settings.site_url, old)
+        self.assertFalse(self.app.is_logged_in())
+        self.assertEqual(self.app.sites(), [old, SITE])
+        self.assertEqual(self.app.previous_site(), SITE)
+        self.app.set_selection([5])
+        self.app.switch_site(SITE)
+        self.assertEqual(
+            (self.app.settings.user_id, self.app.settings.selected_courses), (42, [1072])
+        )
+        self.assertTrue(self.app.is_logged_in())
+        reopened = CampusApp(self.app.app_dir, client_factory=FakeClient)
+        reopened.switch_site(old)
+        self.assertEqual(reopened.settings.selected_courses, [5])
+
+    def test_errors(self) -> None:
+        """Duplicates, unknown sites and URLs without a year are refused."""
+        cases = [
+            (self.app.add_site, SITE + "/", "error_site_exists"),
+            (self.app.add_site, "https://moodle.example.test", "error_no_year"),
+            (self.app.switch_site, "https://other.test/2020-21", "error_site_unknown"),
+        ]
+        for action, url, key in cases:
+            with self.assertRaises(AppError, msg=url) as context:
+                action(url)
+            self.assertEqual(context.exception.key, key)
+
+    def test_remove_sites(self) -> None:
+        """Removing the active site deletes its token and activates the other one."""
+        old = "https://moodle.example.test/2025-26"
+        self.app.add_site(old)
+        self.app.switch_site(SITE)
+        self.app.remove_site(SITE)
+        self.assertIsNone(auth.load_token(SITE, 42))
+        self.assertEqual((self.app.settings.site_url, self.app.sites()), (old, [old]))
+        self.app.remove_site(old)
+        self.assertEqual(self.app.sites(), [old])
+
+    def test_editing_url_to_saved_site_switches(self) -> None:
+        """Typing a saved site's URL on the login screen switches instead of duplicating."""
+        old = "https://moodle.example.test/2025-26"
+        self.app.add_site(old)
+        self.app.set_site_url(SITE)
+        self.assertEqual(self.app.sites(), [old, SITE])
+        self.assertEqual(self.app.settings.user_id, 42)
+
+
 if __name__ == "__main__":
     unittest.main()

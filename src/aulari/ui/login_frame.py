@@ -43,12 +43,14 @@ class LoginFrame(ttk.Frame):
         app: CampusApp,
         worker: Worker,
         on_logged_in: Callable[[], None],
+        on_back: Callable[[], None] | None = None,
     ) -> None:
         """Build the widgets."""
         super().__init__(parent, padding=PADDING)
         self._app = app
         self._worker = worker
         self._on_logged_in = on_logged_in
+        self._on_back = on_back
         self._passport = ""
         self._server = None
         self._waited_ms = 0
@@ -72,6 +74,10 @@ class LoginFrame(ttk.Frame):
             self, text=text("login_open_browser"), command=self._open_browser
         )
         self._browser_button.pack(anchor="w")
+        if self._on_back is not None and self._app.previous_site() is not None:
+            ttk.Button(self, text=text("login_back"), command=self._back).pack(
+                anchor="w", pady=(PADDING // 2, 0)
+            )
         ttk.Label(
             self, textvariable=self._status, wraplength=WRAP_PIXELS, foreground="#1a5fb4"
         ).pack(anchor="w", pady=(PADDING, 0))
@@ -168,6 +174,14 @@ class LoginFrame(ttk.Frame):
         launch_url, self._passport = self._app.start_login()
         self._start_waiting()
         webbrowser.open(launch_url)
+
+    def _back(self) -> None:
+        """Return to the academic year that was active before (RF19)."""
+        previous = self._app.previous_site()
+        if previous is not None and self._on_back is not None:
+            self._stop_waiting()
+            self._app.switch_site(previous)
+            self._on_back()
 
     def _on_return(self, _event: tk.Event) -> None:
         """Pressing Enter in the paste field logs in."""

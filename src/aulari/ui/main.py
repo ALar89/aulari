@@ -50,10 +50,7 @@ class MainWindow:
             logged_in = app.is_logged_in()
         except keyring.errors.KeyringError as error:
             messagebox.showerror(text("app_title"), error_message(error))
-        if logged_in:
-            self.show_home()
-        else:
-            self.show_login()
+        self._show_for_session(logged_in)
 
     def _first_run_notice(self) -> None:
         """Show once that the material is for personal use only (RF12)."""
@@ -79,13 +76,29 @@ class MainWindow:
         self._frame = frame
         self._frame.pack(fill="both", expand=True)
 
+    def _show_for_session(self, logged_in: bool) -> None:
+        """Show the main screen when logged in, otherwise the login screen."""
+        if logged_in:
+            self.show_home()
+        else:
+            self.show_login()
+
+    def show_start(self) -> None:
+        """Show the right screen for the active site (after switching academic year)."""
+        logged_in = False
+        try:
+            logged_in = self._app.is_logged_in()
+        except keyring.errors.KeyringError as error:
+            messagebox.showerror(text("app_title"), error_message(error))
+        self._show_for_session(logged_in)
+
     def show_login(self) -> None:
         """Show the login screen."""
-        self._show(LoginFrame(self._root, self._app, self._worker, self.show_home))
+        self._show(LoginFrame(self._root, self._app, self._worker, self.show_home, self.show_start))
 
     def show_home(self) -> None:
         """Show the main screen."""
-        self._show(HomeFrame(self._root, self._app, self._worker, self.show_login))
+        self._show(HomeFrame(self._root, self._app, self._worker, self.show_login, self.show_start))
 
 
 def run() -> None:
