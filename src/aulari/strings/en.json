@@ -122,5 +122,18 @@
   "site_header": "== Year {site} ==",
   "site_skipped_no_courses": "No courses ticked: not synced.",
   "site_skipped_no_session": "Not logged in: open this year and log in.",
-  "language_label": "Language:"
+  "language_label": "Language:",
+  "auto_sync_label": "Sync automatically",
+  "auto_every_24": "once a day",
+  "auto_every_12": "every 12 hours",
+  "auto_every_6": "every 6 hours",
+  "auto_sync_on": "Automatic sync on ({label}, and when Windows starts).",
+  "auto_sync_off": "Automatic sync off.",
+  "error_scheduler": "Could not set up the Windows Task Scheduler.",
+  "notice_title": "Aulari: there is news in your campus.",
+  "notice_new_files": "{count} new files",
+  "notice_new_versions": "{count} new versions",
+  "notice_announcements": "{count} new announcements",
+  "notice_session_expired": "The session of year {site} has expired: open Aulari and log in.",
+  "notice_open_app": "Open Aulari"
 }

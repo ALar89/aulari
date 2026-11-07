@@ -13,6 +13,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D3 | Calendario | **ACEPTADA (2026-11-06): exportador propio** con `core_calendar_get_calendar_events` (§8). Más código, pero controlamos el formato y la ventana de fechas, y no hay que guardar un segundo secreto (el token de exportación). |
 | D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
 | D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
+| D7 | Sincronización automática | **ACEPTADA (2026-11-07):** tarea del Programador de tareas de Windows solo para el usuario (`Aulari.exe --background`), al iniciar sesión y cada 24 h por defecto (opciones: 12 h, 6 h; nunca menos de 6 h). Sin dependencias nuevas; aviso en una ventana pequeña propia solo si hay archivos o avisos nuevos, o si la sesión ha caducado. |
 | D5 | Nombre del proyecto | "Moodle" es marca registrada. **Revisado el 2026-11-06:** la política de marcas de Moodle (moodle.com/trademarks) dice que no se puede usar "Moodle" en el nombre del software, sin distinguir "… for Moodle"; solo se permite describir la integración ("works with Moodle™"). Recomendado: nombre propio sin "Moodle" y la integración en la descripción; nunca el logotipo de Moodle ni de la UAB. **ACEPTADA (2026-11-06): «Aulari»** (libre en PyPI; en GitHub solo repositorios vacíos con nombres parecidos). Descripción: «Funciona con Moodle™». |
 
 ## 2. Resumen
@@ -226,6 +227,12 @@ Todas las funciones responden a un estudiante en e-aules:
 - Probado por el usuario: en catalán, con 2025-26 sin asignaturas (saltado) y 2026-27 (89 sin cambios, calendario con 5 eventos).
 - Publicada el 2026-11-07: `Aulari-v0.2.0-windows.zip` (18 MB, `d21386d3…a668d8`) con atestación, ya con `attest-build-provenance@v4`: la comprobación pendiente de la 0.1.0 queda hecha.
 
+### Sincronización automática (verificado el 2026-11-07)
+
+- La tarea `Aulari\Sync` se crea sin administrador, aparece en el Programador de tareas con dos desencadenadores y se ejecuta con la app cerrada (resultado 0).
+- **Error encontrado en la prueba real:** la hora de la última ejecución se guardaba en `config.json`, y cualquier guardado desde la ventana (por ejemplo, marcar la casilla) la ponía a 0. Reproducido con dos instancias de `CampusApp`; ahora se guarda en `background_state.json`, que la ventana no toca.
+- El log de diagnóstico confirmó que, tras una ejecución, las siguientes en pocos segundos se saltan (`due False`).
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
@@ -255,4 +262,4 @@ Todas las funciones responden a un estudiante en e-aules:
 
 ## 14. Fuera de alcance v1
 
-El HTML de las páginas (sí sus archivos incrustados) y vídeos, sincronización automática, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
+El HTML de las páginas (sí sus archivos incrustados) y vídeos, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.

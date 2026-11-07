@@ -1,6 +1,7 @@
 """Build the user-facing texts of a sync result (no tkinter, so it is testable)."""
 
 from aulari.app import CourseChoice, Deadline, SiteSyncResult, SyncResult
+from aulari.background import BackgroundOutcome
 from aulari.extras import Announcement, CourseGrade, GradeItem, SubmissionRow
 from aulari.log_filter import redact
 from aulari.organizer import academic_year_from_site, to_local_time
@@ -9,6 +10,7 @@ from aulari.texts import text
 from aulari.ui.messages import error_message
 
 MAX_ERRORS_SHOWN = 5
+NEWLINE = "\n"
 
 
 def course_label(choice: CourseChoice) -> str:
@@ -154,4 +156,23 @@ def grade_rows(grades: list[CourseGrade]) -> list[tuple[str, ...]]:
 def item_rows(items: list[GradeItem]) -> list[tuple[str, ...]]:
     """Return the grade items table rows (RF18)."""
     result = [(item.name, item.grade, item.grade_range, item.percentage) for item in items]
+    return result
+
+
+def notice_text(outcome: BackgroundOutcome) -> str:
+    """Return the message of the background notice (D7)."""
+    parts = []
+    if outcome.new_files:
+        parts.append(text("notice_new_files", count=outcome.new_files))
+    if outcome.new_versions:
+        parts.append(text("notice_new_versions", count=outcome.new_versions))
+    if outcome.announcements:
+        parts.append(text("notice_announcements", count=outcome.announcements))
+    lines = [text("notice_title")]
+    if parts:
+        lines.append(", ".join(parts) + ".")
+    for site_url in outcome.expired_sites:
+        label = academic_year_from_site(site_url) or site_url
+        lines.append(text("notice_session_expired", site=label))
+    result = redact(NEWLINE.join(lines))
     return result

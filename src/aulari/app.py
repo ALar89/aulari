@@ -16,7 +16,7 @@ from pathlib import Path, PurePosixPath
 import keyring.errors
 import requests
 
-from aulari import auth, calendar_export, extras, news, organizer
+from aulari import auth, calendar_export, extras, news, organizer, scheduler
 from aulari.calendar_export import CalendarRequest, export_calendar
 from aulari.config import Settings, load_settings, save_settings
 from aulari.moodle_client import MoodleClient, MoodleError
@@ -258,6 +258,19 @@ class CampusApp:
     def set_selection(self, course_ids: list[int]) -> None:
         """Remember which courses are selected (RF3)."""
         self.settings.selected_courses = sorted(course_ids)
+        self.save()
+
+    def set_auto_sync(self, hours: int, runner: scheduler.Runner = scheduler.run_command) -> None:
+        """Turn automatic sync on every 'hours' hours, or off with 0 (D7).
+
+        Raises: ValueError for an unsupported interval; SchedulerError if the
+        Windows Task Scheduler refuses; OSError when saving the settings.
+        """
+        if hours == 0:
+            scheduler.disable(runner)
+        else:
+            scheduler.enable(hours, runner)
+        self.settings.auto_sync_hours = hours
         self.save()
 
     def set_language_preference(self, language: str) -> None:
