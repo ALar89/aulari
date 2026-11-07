@@ -219,6 +219,12 @@ Todas las funciones responden a un estudiante en e-aules:
 - Dependabot propuso subir `actions/checkout` y `actions/setup-python` a v7 y `attest-build-provenance` a v4; aceptadas. Las tres tocaban `ci.yml` y `release.yml`, así que tras la primera hubo que pedir `@dependabot rebase`. La atestación con v4 se comprobará en la próxima versión.
 - Pendiente: solicitar la firma de código a SignPath Foundation.
 
+### Versión 0.2.0 (verificado el 2026-11-07)
+
+- «Sincronizar todos los cursos»: sincroniza cada curso académico guardado y vuelve al activo; los cursos sin asignaturas o sin sesión se saltan con aviso; no marca como vistas las asignaturas nuevas.
+- Interfaz en catalán, castellano e inglés, según el idioma de Windows o el selector de la ventana.
+- Probado por el usuario: en catalán, con 2025-26 sin asignaturas (saltado) y 2026-27 (89 sin cambios, calendario con 5 eventos).
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
