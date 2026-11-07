@@ -10,7 +10,8 @@ App de escritorio en Python que descarga el material de un Moodle (por defecto, 
 - **Fase 2 terminada** (confirmada por el usuario el 2026-11-06): núcleo sin interfaz en `src/aulari/`, verificado con una sincronización real de una asignatura (`poc/sync_one_course.py`).
 - **Fase 3 terminada** (confirmada por el usuario el 2026-11-06): `calendar_export.py`, verificado con Proton Calendar (sin duplicados al reimportar).
 - **Fase 4 terminada** (confirmada por el usuario el 2026-11-06): interfaz Tkinter en `src/aulari/ui/` (`python -m aulari`), login automático con `moodlemobile://`, sincronización con calendario, alias, «Recuperar borrados».
-- Siguiente paso: **Fase 5**, empaquetado y publicación (`docs/design.md` §11 y §13). Antes, decidir el nombre (D5).
+- **Fase 5 cerrada** (confirmada por el usuario el 2026-11-07): nombre «Aulari» (D5), ampliación RF13–RF19, README en inglés y castellano, licencia MIT, dependencias con hashes, ejecutable PyInstaller verificado, CI en verde y flujo de versiones en GitHub Actions. Repositorio: https://github.com/ALar89/aulari.
+- Siguiente paso: hacer público el repositorio y publicar `v0.1.0` (etiqueta → compilación en GitHub con atestación). Después, solicitar la firma a SignPath. Más adelante: sincronización automática e idiomas catalán e inglés.
 - Hay **decisiones pendientes** en `docs/design.md` §1. Claude no las toma por su cuenta: las plantea al usuario.
 - No empezar una fase hasta que la anterior funcione y el usuario lo confirme.
 
