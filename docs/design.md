@@ -224,6 +224,7 @@ Todas las funciones responden a un estudiante en e-aules:
 - «Sincronizar todos los cursos»: sincroniza cada curso académico guardado y vuelve al activo; los cursos sin asignaturas o sin sesión se saltan con aviso; no marca como vistas las asignaturas nuevas.
 - Interfaz en catalán, castellano e inglés, según el idioma de Windows o el selector de la ventana.
 - Probado por el usuario: en catalán, con 2025-26 sin asignaturas (saltado) y 2026-27 (89 sin cambios, calendario con 5 eventos).
+- Publicada el 2026-11-07: `Aulari-v0.2.0-windows.zip` (18 MB, `d21386d3…a668d8`) con atestación, ya con `attest-build-provenance@v4`: la comprobación pendiente de la 0.1.0 queda hecha.
 
 ## 11. Legal y distribución
 
