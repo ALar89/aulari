@@ -1,0 +1,57 @@
+# Build Aulari.exe on GitHub (never on a personal computer, design section 11)
+# when a version tag such as v0.1.0 is pushed, and publish it as a release with
+# its SHA-256 and a build provenance attestation.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write       # create the release
+  id-token: write       # sign the provenance attestation
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install pinned dependencies (hashes required)
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+      - name: Check that the tag matches the package version
+        shell: pwsh
+        run: |
+          $version = python -c "import aulari; print(aulari.__version__)"
+          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match version $version" }
+      - name: Lint and tests
+        run: |
+          ruff format --check
+          ruff check
+          python -m unittest discover -s tests -v
+      - name: Check THIRD_PARTY_LICENSES is up to date
+        run: |
+          python packaging/make_third_party_licenses.py
+          git diff --exit-code -- THIRD_PARTY_LICENSES
+      - name: Build the executable
+        run: pyinstaller --clean --noconfirm aulari.spec
+      - name: Package and hash
+        shell: pwsh
+        run: |
+          $zip = "Aulari-${{ github.ref_name }}-windows.zip"
+          Compress-Archive -Path dist/Aulari -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Out-File -Encoding ascii "$zip.sha256"
+          "ZIP=$zip" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.ZIP }}
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "${{ env.ZIP }}" "${{ env.ZIP }}.sha256" --generate-notes
