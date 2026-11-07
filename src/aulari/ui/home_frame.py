@@ -33,6 +33,7 @@ from aulari.ui.summary import (
     progress_text,
     submission_rows,
     summary_text,
+    sync_all_text,
 )
 from aulari.ui.table_window import AnnouncementsWindow, TableWindow
 from aulari.ui.worker import Worker
@@ -141,6 +142,10 @@ class HomeFrame(ttk.Frame):
         buttons.pack(fill="x", pady=(PADDING, 0))
         self._sync_button = ttk.Button(buttons, text=text("sync_button"), command=self._sync)
         self._sync_button.pack(side="left")
+        self._sync_all_button = ttk.Button(
+            buttons, text=text("sync_all_button"), command=self._sync_all
+        )
+        self._sync_all_button.pack(side="left", padx=(PADDING // 2, 0))
         self._restore_button = ttk.Button(
             buttons,
             text=text("restore_button"),
@@ -178,6 +183,7 @@ class HomeFrame(ttk.Frame):
         """Enable or disable the controls while a background task runs."""
         state = "disabled" if busy else "normal"
         self._sync_button.configure(state=state)
+        self._sync_all_button.configure(state=state)
         self._restore_button.configure(state=state)
         self._news_button.configure(state=state)
         self._announcements_button.configure(state=state)
@@ -337,6 +343,32 @@ class HomeFrame(ttk.Frame):
             self._app.run_sync, self._choices, self._worker.report, self._cancel, restore_missing
         )
         self._worker.start(task, self._sync_done, self._sync_failed, self._sync_progress)
+
+    def _sync_all(self) -> None:
+        """Sync every saved academic year in the background, then show one summary."""
+        self._cancel = threading.Event()
+        self._progress.configure(value=0, maximum=1)
+        self._status.set(text("sync_starting"))
+        self._set_busy(True, syncing=True)
+        task = functools.partial(self._app.run_sync_all, self._worker.report, self._cancel)
+        self._worker.start(task, self._sync_all_done, self._task_failed, self._sync_progress)
+
+    def _sync_all_done(self, results: object) -> None:
+        """Main thread: show the per-year summary and any new announcements."""
+        self._set_busy(False)
+        items = list(results)
+        self._status.set(sync_all_text(items))
+        self._announcements = []
+        for item in items:
+            if item.result is not None:
+                self._announcements.extend(item.result.announcements)
+        self._load_deadlines()
+        if self._announcements and messagebox.askyesno(
+            text("app_title"),
+            text("announcements_notice", count=len(self._announcements)),
+            parent=self,
+        ):
+            self._show_announcements()
 
     def _cancel_sync(self) -> None:
         """Ask the sync to stop after the current file."""

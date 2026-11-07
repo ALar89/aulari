@@ -1,11 +1,12 @@
 """Build the user-facing texts of a sync result (no tkinter, so it is testable)."""
 
-from aulari.app import CourseChoice, Deadline, SyncResult
+from aulari.app import CourseChoice, Deadline, SiteSyncResult, SyncResult
 from aulari.extras import Announcement, CourseGrade, GradeItem, SubmissionRow
 from aulari.log_filter import redact
-from aulari.organizer import to_local_time
+from aulari.organizer import academic_year_from_site, to_local_time
 from aulari.sync import Progress
 from aulari.texts import text
+from aulari.ui.messages import error_message
 
 MAX_ERRORS_SHOWN = 5
 
@@ -72,6 +73,22 @@ def summary_text(result: SyncResult) -> str:
     lines.extend(_after_sync_lines(result))
     result_text = redact("\n".join(lines))
     return result_text
+
+
+def sync_all_text(results: list[SiteSyncResult]) -> str:
+    """Return the summary of 'sync all': one block per academic year."""
+    blocks = []
+    for item in results:
+        label = academic_year_from_site(item.site_url) or item.site_url
+        if item.result is not None:
+            body = summary_text(item.result)
+        elif item.skipped_key:
+            body = text(item.skipped_key)
+        else:
+            body = error_message(item.error)
+        blocks.append(f"{text('site_header', site=label)}\n{body}")
+    result = redact("\n\n".join(blocks))
+    return result
 
 
 def _after_sync_lines(result: SyncResult) -> list[str]:
