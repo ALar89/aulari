@@ -234,6 +234,11 @@ Todas las funciones responden a un estudiante en e-aules:
 - El log de diagnóstico confirmó que, tras una ejecución, las siguientes en pocos segundos se saltan (`due False`).
 - Publicada como versión 0.3.0 el 2026-11-07: `Aulari-v0.3.0-windows.zip` (18 MB, `f0230bf8…708113`) con atestación de procedencia comprobada en la API de GitHub.
 
+### Versión 0.3.1 (2026-11-07)
+
+- Logo (`packaging/aulari-logo-1024.png`) e icono `.ico` de 16 a 256 px, generado con `packaging/make_icon.py` (solo biblioteca estándar): en el ejecutable, las ventanas, el aviso de la sincronización automática y los README.
+- Publicada el 2026-11-07: `Aulari-v0.3.1-windows.zip` (18 MB, `10daa504…15d9d3`) con atestación de procedencia comprobada en la API de GitHub.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
