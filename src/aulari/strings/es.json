@@ -121,5 +121,6 @@
   "sync_all_button": "Sincronizar todos los cursos",
   "site_header": "== Curso {site} ==",
   "site_skipped_no_courses": "Sin asignaturas marcadas: no se ha sincronizado.",
-  "site_skipped_no_session": "Sin sesión iniciada: entra en este curso e inicia sesión."
+  "site_skipped_no_session": "Sin sesión iniciada: entra en este curso e inicia sesión.",
+  "language_label": "Idioma:"
 }

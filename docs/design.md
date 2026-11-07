@@ -114,7 +114,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 ## 9. Requisitos no funcionales
 
 - **Plataformas:** Windows en la v1; después macOS (`.webloc` en lugar de `.url`) y Linux.
-- **Idiomas:** interfaz en castellano; catalán e inglés después, con archivos de cadenas.
+- **Idiomas:** interfaz en catalán, castellano e inglés (`strings/ca.json`, `es.json`, `en.json`); por defecto sigue el idioma de Windows y se puede cambiar desde la ventana (hecho el 2026-11-07).
 - **Sin IA en el núcleo.**
 - **Robustez:** un fallo en un archivo o curso no detiene la sincronización.
 - **Logs:** pueden contener IDs y nombres de archivo; nunca el token, el nombre o el correo del usuario, ni respuestas completas. Rotación en la carpeta de datos de la app.

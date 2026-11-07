@@ -260,6 +260,11 @@ class CampusApp:
         self.settings.selected_courses = sorted(course_ids)
         self.save()
 
+    def set_language_preference(self, language: str) -> None:
+        """Remember the interface language ('' = follow the system)."""
+        self.settings.language = language
+        self.save()
+
     def accept_first_run_notice(self) -> None:
         """Remember that the personal-use notice was shown (RF12)."""
         self.settings.first_run_notice_seen = True
