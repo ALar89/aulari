@@ -6,6 +6,7 @@ Start with:  python -m aulari
 import json
 import logging
 import os
+import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
@@ -23,6 +24,7 @@ from aulari.ui.messages import error_message
 from aulari.ui.worker import Worker, log_thread_exceptions
 
 PADDING = 12
+APP_DIR_NAME = "aulari"
 LOG_DIR_NAME = "logs"
 LOG_FILE_NAME = "aulari.log"
 MIN_WIDTH = 620
@@ -30,9 +32,18 @@ MIN_HEIGHT = 560
 
 
 def default_app_dir() -> Path:
-    """Return %LOCALAPPDATA%\\aulari (the home folder as a fallback)."""
+    """Return the app data folder.
+
+    macOS: ~/Library/Application Support/aulari. Windows: %LOCALAPPDATA%\\aulari.
+    Elsewhere, or without LOCALAPPDATA: ~/.aulari.
+    """
     base = os.environ.get("LOCALAPPDATA")
-    result = Path(base) / "aulari" if base else Path.home() / ".aulari"
+    if sys.platform == "darwin":
+        result = Path.home() / "Library" / "Application Support" / APP_DIR_NAME
+    elif base:
+        result = Path(base) / APP_DIR_NAME
+    else:
+        result = Path.home() / f".{APP_DIR_NAME}"
     return result
 
 

@@ -8,10 +8,16 @@ login ends, fails, times out or the screen closes.
 
 A hidden manual paste field stays available as a fallback. The pasted URL
 contains the token: the entry shows dots and is cleared right after reading.
+On macOS the automatic login is not implemented yet: the manual fallback is
+shown from the start, with a button that copies the launch.php URL (it holds
+no token). The user pastes it into a browser tab whose developer tools are
+already recording, so the redirect is captured even when the campus session
+is still open and the browser redirects at once.
 """
 
 import functools
 import logging
+import sys
 import tkinter as tk
 import webbrowser
 from collections.abc import Callable
@@ -32,6 +38,22 @@ POLL_MS = 300
 WAIT_LIMIT_MS = 10 * 60 * 1000  # stop waiting for the browser after 10 minutes
 
 logger = logging.getLogger(__name__)
+
+
+def is_macos() -> bool:
+    """Return True when running on macOS."""
+    result = sys.platform == "darwin"
+    return result
+
+
+def system_text(key: str) -> str:
+    """Return the text for key, or its '<key>_macos' variant on macOS.
+
+    Raises: KeyError if the text is missing.
+    """
+    variant = f"{key}_macos" if is_macos() else key
+    result = text(variant)
+    return result
 
 
 class LoginFrame(ttk.Frame):
@@ -57,6 +79,7 @@ class LoginFrame(ttk.Frame):
         self._site = tk.StringVar(value=app.settings.site_url)
         self._status = tk.StringVar()
         self._manual_visible = False
+        self._copy_button = None
         self._build()
         self.bind("<Destroy>", self._on_destroy)
 
@@ -67,9 +90,9 @@ class LoginFrame(ttk.Frame):
         ttk.Label(self, text=text("login_title"), font=("", 14, "bold")).pack(anchor="w")
         ttk.Label(self, text=text("login_site_label")).pack(anchor="w", pady=(PADDING, 0))
         ttk.Entry(self, textvariable=self._site, width=60).pack(fill="x")
-        ttk.Label(self, text=text("login_steps"), wraplength=WRAP_PIXELS, justify="left").pack(
-            anchor="w", pady=PADDING
-        )
+        ttk.Label(
+            self, text=system_text("login_steps"), wraplength=WRAP_PIXELS, justify="left"
+        ).pack(anchor="w", pady=PADDING)
         self._browser_button = ttk.Button(
             self, text=text("login_open_browser"), command=self._open_browser
         )
@@ -87,8 +110,16 @@ class LoginFrame(ttk.Frame):
         self._manual_toggle.pack(anchor="w", pady=(PADDING, 0))
         self._manual = ttk.Frame(self)
         ttk.Label(
-            self._manual, text=text("login_manual_steps"), wraplength=WRAP_PIXELS, justify="left"
+            self._manual,
+            text=system_text("login_manual_steps"),
+            wraplength=WRAP_PIXELS,
+            justify="left",
         ).pack(anchor="w")
+        if is_macos():
+            self._copy_button = ttk.Button(
+                self._manual, text=text("login_copy_launch"), command=self._copy_launch_url
+            )
+            self._copy_button.pack(anchor="w", pady=(PADDING // 2, PADDING // 2))
         self._paste = ttk.Entry(self._manual, show=SECRET_CHAR, width=60)
         self._paste.pack(fill="x")
         self._paste.bind("<Return>", self._on_return)
@@ -96,6 +127,8 @@ class LoginFrame(ttk.Frame):
             self._manual, text=text("login_button"), command=self._login
         )
         self._login_button.pack(anchor="w", pady=(PADDING, 0))
+        if is_macos():
+            self._toggle_manual()  # the only way to log in on macOS for now
 
     def _toggle_manual(self) -> None:
         """Show or hide the manual paste fallback."""
@@ -110,6 +143,8 @@ class LoginFrame(ttk.Frame):
         state = "disabled" if busy else "normal"
         self._browser_button.configure(state=state)
         self._login_button.configure(state=state)
+        if self._copy_button is not None:
+            self._copy_button.configure(state=state)
 
     # --- waiting for the browser ----------------------------------------
 
@@ -136,10 +171,11 @@ class LoginFrame(ttk.Frame):
         if self._server is not None:
             self._server.close()
             self._server = None
-        try:
-            url_handler.unregister(self._app.app_dir)
-        except OSError as error:
-            logger.warning("Could not remove the moodlemobile:// handler: %s", error)
+        if sys.platform == "win32":  # only Windows registers a handler
+            try:
+                url_handler.unregister(self._app.app_dir)
+            except OSError as error:
+                logger.warning("Could not remove the moodlemobile:// handler: %s", error)
 
     def _poll_browser(self) -> None:
         """Main thread: check the socket; give up after WAIT_LIMIT_MS."""
@@ -166,14 +202,26 @@ class LoginFrame(ttk.Frame):
 
     # --- actions -------------------------------------------------------
 
-    def _open_browser(self) -> None:
-        """Save the site URL, start a new attempt, wait for the browser and open it."""
+    def _new_attempt(self) -> str:
+        """Save the site URL and start a new login attempt; return its launch.php URL."""
         self._stop_waiting()
         self._app.set_site_url(self._site.get())
         self._site.set(self._app.settings.site_url)
         launch_url, self._passport = self._app.start_login()
+        return launch_url
+
+    def _open_browser(self) -> None:
+        """Start a new attempt, wait for the browser and open it."""
+        launch_url = self._new_attempt()
         self._start_waiting()
         webbrowser.open(launch_url)
+
+    def _copy_launch_url(self) -> None:
+        """macOS: start a new attempt and copy its launch.php URL (it holds no token)."""
+        launch_url = self._new_attempt()
+        self.clipboard_clear()
+        self.clipboard_append(launch_url)
+        self._status.set(text("login_copied"))
 
     def _back(self) -> None:
         """Return to the academic year that was active before (RF19)."""
