@@ -1,6 +1,6 @@
-# Build Aulari.exe on GitHub (never on a personal computer, design section 11)
-# when a version tag such as v0.1.0 is pushed, and publish it as a release with
-# its SHA-256 and a build provenance attestation.
+# Build Aulari.exe and Aulari.app on GitHub (never on a personal computer,
+# design section 11) when a version tag such as v0.1.0 is pushed, and publish
+# them as a release with their SHA-256 and a build provenance attestation.
 name: Release
 
 on:
@@ -55,3 +55,39 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${{ github.ref_name }}" "${{ env.ZIP }}" "${{ env.ZIP }}.sha256" --generate-notes
+
+  # macOS app (Apple Silicon) in a .dmg, added to the release the Windows job
+  # created. It runs after it, so a macOS failure never blocks the Windows release.
+  build-macos:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install pinned dependencies (hashes required)
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+      - name: Lint and tests
+        run: |
+          ruff format --check
+          ruff check
+          python -m unittest discover -s tests -v
+      - name: Build the app
+        run: pyinstaller --clean --noconfirm aulari.spec
+      - name: Package and hash
+        run: |
+          test "$(uname -m)" = arm64
+          dmg="Aulari-${{ github.ref_name }}-macos-arm64.dmg"
+          packaging/make_dmg.sh "$dmg"
+          shasum -a 256 "$dmg" > "$dmg.sha256"
+          echo "DMG=$dmg" >> "$GITHUB_ENV"
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: ${{ env.DMG }}
+      - name: Add to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" "${{ env.DMG }}" "${{ env.DMG }}.sha256"

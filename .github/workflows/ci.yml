@@ -1,4 +1,4 @@
-# Lint and tests on every push and pull request (Windows, as the app).
+# Lint and tests on every push and pull request (Windows and macOS).
 name: CI
 
 on:
@@ -11,6 +11,26 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install pinned dependencies (hashes required)
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+      - name: Lint
+        run: |
+          ruff format --check
+          ruff check
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+
+  # Same checks on macOS (Apple Silicon). A separate job, so the name of the
+  # Windows check above does not change.
+  test-macos:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
