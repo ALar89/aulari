@@ -12,7 +12,7 @@ Aulari is a desktop app for students. It downloads the files of your courses fro
 
 ## Features
 
-- **Automatic login with your university's single sign-on** (for example CAS): you log in in your own browser and the app receives the session by itself. No password is ever typed into the app.
+- **Login with your university's single sign-on** (for example CAS): you log in in your own browser and, on Windows, the app receives the session by itself (on macOS you copy one address by hand for now, see below). No password is ever typed into the app.
 - **Tidy folders**: `<destination>/<academic year>/<course>/<NN - section>/`, with short course aliases (`Camps i Ones Electromagnètiques` → `CiOE`) that you can rename.
 - **Nothing is ever overwritten**: when a teacher uploads a new version, it is saved next to the old one as `Name (YYYY-MM-DD).ext`. Files removed from Moodle stay on your disk.
 - **Files from resources, folders, pages and assignment statements**, plus external links as `.url` shortcuts.
@@ -23,9 +23,9 @@ Aulari is a desktop app for students. It downloads the files of your courses fro
 
 ## Requirements
 
-- Windows 10 or 11.
+- Windows 10 or 11, or macOS on a Mac with Apple Silicon (M1 or later).
 - A Moodle site with the mobile app service enabled (most universities have it, because the official Moodle app needs it).
-- To run from source: Python 3.14.
+- To run from source: Python 3.14 (on macOS, the python.org installer, which includes Tk).
 
 ## Installation (from source)
 
@@ -41,9 +41,34 @@ python -m aulari
 
 A packaged Windows executable will be published in the releases.
 
+### macOS
+
+Download `Aulari-<version>-macos-arm64.dmg` from the [releases](https://github.com/ALar89/aulari/releases), open it and drag **Aulari** to **Applications**.
+
+The app is **not signed or notarized by Apple** (that needs a paid Apple developer account), so the first time macOS blocks it with a message saying that Apple could not verify it. To open it:
+
+1. Open Aulari once and close the message.
+2. Go to **System Settings → Privacy & Security**, scroll down to *Security* and press **Open Anyway** next to the message about Aulari.
+3. Confirm with your password or Touch ID. macOS will not ask again for this version.
+
+Optionally, check the download first: the release includes its SHA-256 (`shasum -a 256 -c Aulari-<version>-macos-arm64.dmg.sha256`) and a build provenance attestation (`gh attestation verify Aulari-<version>-macos-arm64.dmg --repo ALar89/aulari`).
+
+From source, in Terminal:
+
+```bash
+git clone https://github.com/ALar89/aulari.git
+cd aulari
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install --require-hashes -r requirements.txt
+pip install --no-deps -e .
+python -m aulari
+```
+
 ## How to use it
 
 1. **Log in**: press *Abrir navegador*, log in to your campus as usual and accept when the browser asks to open the app. The window continues by itself.
+   On macOS, automatic login is not available yet. In Google Chrome or another Chromium-based browser, open a new tab with the developer tools recording (*Network* → *Preserve log*), press **Copy login address** in Aulari and paste it into that tab. After logging in, copy the `Location` header of the `launch.php` request (status 302, it starts with `moodlemobile://`) and paste it into the app. The login screen shows these steps. This also works when your campus session is still open in the browser, which redirects at once and leaves the tab blank.
 2. **Choose your courses** with the checkboxes and a **destination folder**.
 3. Press **Sincronizar**. The summary shows what is new; the calendar is exported to `<destination>/<academic year>/calendari.ics`.
 
@@ -53,11 +78,11 @@ The interface is available in Catalan, Spanish and English (selector at the bott
 
 | What | Where |
 |---|---|
-| Session token | Windows Credential Manager (through `keyring`), never in a file |
-| Settings, registry of downloads, logs | `%LOCALAPPDATA%\aulari\` |
+| Session token | Windows Credential Manager or macOS Keychain (through `keyring`), never in a file |
+| Settings, registry of downloads, logs | Windows: `%LOCALAPPDATA%\aulari\`. macOS: `~/Library/Application Support/aulari/` |
 | Downloaded material | The destination folder you choose |
 
-During login the app registers itself, **only for your Windows user**, as the handler of `moodlemobile://` links, and removes that registration as soon as the login ends.
+On Windows, during login the app registers itself, **only for your Windows user**, as the handler of `moodlemobile://` links, and removes that registration as soon as the login ends.
 
 ## Security and privacy
 
@@ -66,7 +91,7 @@ During login the app registers itself, **only for your Windows user**, as the ha
 - No telemetry: nothing is sent anywhere except to your Moodle site.
 - The app never opens or runs the files it downloads.
 - Honest identification: requests carry the `Aulari/<version>` User-Agent; the app does not pretend to be the official Moodle app.
-- Limits you should know: the Windows credential store protects the token from plain-text copies and backups, but not from malware running as your own user. On some sites (e-aules included) students cannot revoke the token from their profile; it expires by itself after a while.
+- Limits you should know: the system credential store (Windows Credential Manager, macOS Keychain) protects the token from plain-text copies and backups, but not from malware running as your own user. On some sites (e-aules included) students cannot revoke the token from their profile; it expires by itself after a while.
 
 ## Personal use only
 
@@ -74,7 +99,8 @@ The material of your courses belongs to its authors and is for enrolled students
 
 ## Limitations
 
-- Windows only for now (macOS and Linux are planned).
+- Windows and macOS (Apple Silicon) only; Linux is planned.
+- On macOS, automatic login and automatic sync are not available yet, the app is not notarized, downloaded files are not marked as coming from the internet, and external links are saved as Windows `.url` shortcuts. After an update, macOS may ask again whether Aulari can use the Keychain.
 - The HTML text of pages and videos from external platforms are not downloaded.
 - One computer per destination folder (another computer can take over the folder).
 
@@ -85,6 +111,13 @@ pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 ruff format
 ruff check
+```
+
+On macOS the same commands work in Terminal (`source .venv/bin/activate` instead of `Activate.ps1`). To build the app and the disk image there:
+
+```bash
+pyinstaller --clean --noconfirm aulari.spec
+packaging/make_dmg.sh Aulari-test.dmg
 ```
 
 Design decisions, verified findings and risks are documented in [`docs/design.md`](docs/design.md) (in Spanish).
