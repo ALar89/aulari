@@ -1,9 +1,11 @@
 """Tests for the packaged icon and the window icon helper."""
 
 import struct
+import sys
 import tkinter as tk
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from aulari.ui import icon
 
@@ -74,19 +76,46 @@ class IcnsFileTests(unittest.TestCase):
 
 
 class WindowIconTests(unittest.TestCase):
-    """set_window_icon()."""
+    """set_window_icon() on each system (sys.platform and sys.frozen are faked)."""
 
-    def test_window_gets_the_icon(self) -> None:
-        """The images are loaded into Tk and kept alive on the window."""
+    def setUp(self) -> None:
+        """Create a hidden root, or skip without a display."""
         try:
-            root = tk.Tk()
+            self.root = tk.Tk()
         except tk.TclError:
             self.skipTest("No display available for Tkinter")
-        root.withdraw()
-        icon.set_window_icon(root)
-        self.assertEqual(len(root.aulari_icon_images), len(EXPECTED_SIZES))
-        self.assertEqual(root.aulari_icon_images[-1].width(), 256)
-        root.destroy()
+        self.root.withdraw()
+
+    def tearDown(self) -> None:
+        """Destroy the root window."""
+        self.root.destroy()
+
+    def test_window_gets_every_size(self) -> None:
+        """Outside macOS every size is loaded into Tk and kept alive on the window."""
+        with mock.patch("sys.platform", "win32"):
+            icon.set_window_icon(self.root)
+        self.assertEqual(len(self.root.aulari_icon_images), len(EXPECTED_SIZES))
+        self.assertEqual(self.root.aulari_icon_images[-1].width(), 256)
+
+    def test_macos_from_source_gets_only_the_largest(self) -> None:
+        """Tk on macOS uses only the first image for the Dock: it must be the 256 px one."""
+        with (
+            mock.patch("sys.platform", "darwin"),
+            mock.patch.object(sys, "frozen", False, create=True),
+        ):
+            icon.set_window_icon(self.root)
+        self.assertEqual([image.width() for image in self.root.aulari_icon_images], [256])
+
+    def test_macos_app_bundle_keeps_its_icns(self) -> None:
+        """Inside the macOS app bundle the icon is not touched (the .icns stays in the Dock)."""
+        with (
+            mock.patch("sys.platform", "darwin"),
+            mock.patch.object(sys, "frozen", True, create=True),
+            mock.patch.object(self.root, "iconphoto") as iconphoto,
+        ):
+            icon.set_window_icon(self.root)
+        iconphoto.assert_not_called()
+        self.assertFalse(hasattr(self.root, "aulari_icon_images"))
 
 
 if __name__ == "__main__":
