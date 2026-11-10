@@ -1,6 +1,6 @@
 """Novedades.txt: what each sync added or updated, newest first (RF14).
 
-The file lives in <destination>/<academic year>/. Each sync with changes
+The file lives in <destination>/<academic year folder>/. Each sync with changes
 adds a dated block at the top; older blocks are kept below, up to
 MAX_LINES lines in total. A sync without changes leaves the file alone.
 """
@@ -18,9 +18,9 @@ PATH_PREFIX_PARTS = 2  # '<academic year>/<course alias>'
 DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 
-def news_path(destination: Path, academic_year: str) -> Path:
-    """Return <destination>/<academic year>/Novedades.txt."""
-    result = destination / academic_year / NEWS_FILENAME
+def news_path(destination: Path, year_folder: str) -> Path:
+    """Return <destination>/<academic year folder>/Novedades.txt."""
+    result = destination / year_folder / NEWS_FILENAME
     return result
 
 

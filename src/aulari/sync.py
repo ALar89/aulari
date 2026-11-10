@@ -76,6 +76,30 @@ class SyncTarget:
     user_id: int
     academic_year: str
     destination: Path
+    year_folder: str = ""  # folder of the academic year; '' = the academic year (RF20)
+    subfolder: str = ""  # optional folder for the campus material inside each course (RF20)
+
+    def year_dir(self) -> str:
+        """Return the name of the academic year folder inside the destination."""
+        result = self.year_folder or self.academic_year
+        return result
+
+
+def course_folder_path(year_dir: str, alias: str, subfolder: str) -> str:
+    """Return '<year folder>/<alias>' or '<year folder>/<alias>/<subfolder>' (RF4, RF20)."""
+    result = f"{year_dir}/{alias}"
+    if subfolder:
+        result = f"{result}/{subfolder}"
+    return result
+
+
+def course_root(folder: str) -> str:
+    """Return '<year folder>/<alias>' from a registered course folder (RF20).
+
+    The campus subfolder, if any, is what comes after those two parts.
+    """
+    result = PurePosixPath(*PurePosixPath(folder).parts[:2]).as_posix()
+    return result
 
 
 @dataclass(frozen=True)
@@ -260,6 +284,7 @@ class Syncer:
     def _course_folder(self, course: Course) -> str:
         """Return the course folder ('2026-27/SO'), creating it in the registry if new.
 
+        With a campus subfolder the folder is '2026-27/SO/Campus' (RF20).
         A new alias that collides with another course of the same year gets
         ' (2)'; the user can rename it later (RF4).
         """
@@ -267,15 +292,10 @@ class Syncer:
         if course.course_id in existing:
             result = existing[course.course_id]
         else:
-            year = self._target.academic_year
             alias = organizer.sanitize_filename(organizer.course_alias(course.fullname))
-            used = {
-                PurePosixPath(folder).name
-                for folder in existing.values()
-                if PurePosixPath(folder).parent == PurePosixPath(year)
-            }
+            used = set(self._registry.course_aliases(self._site_id).values())
             alias = organizer.unique_name(alias, used, keep_extension=False)
-            result = f"{year}/{alias}"
+            result = course_folder_path(self._target.year_dir(), alias, self._target.subfolder)
             self._registry.ensure_course(self._site_id, course.course_id, alias, result)
         return result
 

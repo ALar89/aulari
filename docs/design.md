@@ -32,7 +32,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF3 | Selección de asignaturas con casillas; se recuerda la última selección. **La primera vez no se marca ninguna** (decidido el 2026-11-06): en e-aules la clasificación `inprogress` incluye también los espacios que no son asignaturas, y el usuario puede no querer todas. Los cursos nuevos se proponen, no se descargan sin confirmar. |
 | RF4 | Alias de carpeta por asignatura (§5), editable. Cambiarlo después mueve la carpeta y actualiza el registro en una sola transacción. |
 | RF5 | Descarga de archivos (`resource`), carpetas (`folder`, conservando su `filepath`), archivos incrustados en páginas (`page`, sin su `index.html`; decidido el 2026-11-06) y adjuntos de tareas (`introattachments`; las imágenes incrustadas de `introfiles` se ignoran). Enlaces externos como `.url` seguro (§5). |
-| RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. |
+| RF6 | Estructura `<destino>/<curso académico>/<alias>/<NN - sección>/`. Sección 0 = `00 - General`. Con RF20, `<carpeta del curso>/<alias>/[<subcarpeta>/]<NN - sección>/`. |
 | RF7 | Versiones nuevas como `Name (AAAA-MM-DD).ext`, fecha en hora de Europa/Madrid; si coincide, `AAAA-MM-DD HHMM` y después ` (2)`. Nunca se sobrescribe. |
 | RF8 | "Volver a descargar": en la v1, botón «Recuperar borrados» que vuelve a descargar, en su sitio, los archivos de las asignaturas marcadas que el usuario borró (decidido el 2026-11-06; por archivo o sección, más adelante). |
 | RF9 | Calendario según D3. |
@@ -51,6 +51,12 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | RF17 | Estado de las entregas propias de cada tarea (entregada o no, nota y comentarios del profesor). |
 | RF18 | Botón «Calificaciones» que abre una tabla con todas las asignaturas y su nota. |
 | RF19 | Varios cursos académicos (sitios) a la vez, según D6: selector «Curso» en la ventana, añadir y quitar cursos; cada sitio guarda su usuario, token y selección. Se sincroniza solo el curso activo. |
+
+**Ampliación acordada el 2026-11-10** (para encajar Aulari en una estructura de carpetas que el usuario ya tiene):
+
+| ID | Requisito |
+|---|---|
+| RF20 | **Nombre de la carpeta de cada curso académico** (`2025-26` → `2n Curs`), por sitio, y **subcarpeta opcional para el material del campus** dentro de cada asignatura (`BD/Campus/`), global. Los dos se pueden cambiar en cualquier momento: la app mueve las carpetas y actualiza el registro en una sola transacción, y deshace los movimientos si algo falla (detalles en §5). |
 
 RF16–RF18 usan funciones de lectura nuevas (`mod_forum_*`, `mod_assign_get_submission_status`, `gradereport_*`): se comprueban antes en e-aules con un script de prueba. Descartados por ahora: guardar los foros completos. Más adelante: sincronización automática e idiomas catalán e inglés.
 
@@ -78,6 +84,13 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - Limitar sección a 60 caracteres, archivo a 100 y ruta total a 240, truncando con un hash corto.
 - Colisiones (sin distinguir mayúsculas): ` (2)`, ` (3)`… deterministas; el nombre final se guarda en el registro.
 - Comprobar con `Path.resolve()` que la ruta final queda dentro del destino.
+
+**Carpeta del curso y subcarpeta del campus (RF20, 2026-11-10):**
+- La carpeta del curso académico se llama como el curso (`2026-27`) salvo que el usuario le dé otro nombre. Se guarda en `config.json` con cada sitio; el registro guarda la ruta completa de cada asignatura (`2n Curs/BD/Campus`) y el alias en su propia columna, que es la fuente del alias (no el final de la ruta).
+- Renombrarla mueve toda la carpeta, con el calendario, `Novedades.txt` y lo que el usuario tenga dentro. Si la carpeta antigua aún no existe y la nueva sí (por ejemplo, la que el usuario ya tenía), se usa la nueva tal cual. Si existen las dos, se rechaza sin mover nada. No puede coincidir con la de otro curso académico.
+- La subcarpeta del campus es global. Al activarla, cambiarla o quitarla solo se mueven las carpetas de sección que creó Aulari (tabla de secciones del registro), de todos los cursos académicos registrados, también los de un curso cuya sesión se cerró. Las carpetas del usuario (`Apunts`, `Entregues`…) se quedan donde están. Una subcarpeta antigua que queda vacía se borra; si tiene algo, se deja. Se rechaza un nombre igual al de una sección, o si en el destino ya existe una sección con ese nombre.
+- «Abrir» de una asignatura abre `<carpeta del curso>/<alias>`, por encima de la subcarpeta, y cambiar el alias mueve esa carpeta entera.
+- Los dos nombres pasan por `sanitize_filename()` y las rutas se comprueban dentro del destino. Todo se hace con el bloqueo de sincronización.
 
 **Archivos `.url`:** solo esquemas `http`/`https`; rechazar URLs con `\r` o `\n`; contenido exacto `[InternetShortcut]` + `URL=`. Si la URL cambia en Moodle, se crea un `.url` nuevo como versión.
 
@@ -110,7 +123,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - **Exportador propio (D3, aceptada):** `core_calendar_get_calendar_events` (§7). `UID = moodle-<eventid>@<curso académico>.<host>` (el curso evita choques de id entre los sitios de cada año, D6), horas en UTC, `DTSTAMP` y `SEQUENCE`, ventana de hoy −30 días a +1 año.
 - **Eventos sin duración** (decidido el 2026-11-06): **sin `DTEND`**. RFC 5545 exige que `DTEND` sea posterior a `DTSTART`; un `VEVENT` con `DTSTART` de fecha y hora y sin `DTEND` dura cero, que es lo que se quería con `DTEND = DTSTART`.
 - **`SEQUENCE`:** tabla `calendar_events` del registro; sube cuando cambia el `timemodified` del evento.
-- **Archivo** (decidido el 2026-11-06): `<destino>/<curso académico>/calendari.ics`, uno por curso (cada curso es un sitio). Lo genera la app, así que se reemplaza en cada exportación, de forma atómica.
+- **Archivo** (decidido el 2026-11-06): `<destino>/<curso académico>/calendari.ics`, uno por curso (cada curso es un sitio). Con RF20 va en la carpeta del curso con el nombre que le haya dado el usuario; los `UID` y el nombre del calendario siguen usando el curso académico, para que reimportar no duplique eventos. Lo genera la app, así que se reemplaza en cada exportación, de forma atómica.
 - **Limitación documentada:** importar no es sincronizar. Según el calendario, reimportar puede duplicar eventos, y los eventos borrados en Moodle no desaparecen. Hay que comprobar el comportamiento de Proton Calendar.
 
 ## 9. Requisitos no funcionales

@@ -47,9 +47,9 @@ class CalendarEvent:
     url: str
 
 
-def calendar_path(destination: Path, academic_year: str) -> Path:
-    """Return <destination>/<academic year>/calendari.ics."""
-    result = destination / academic_year / CALENDAR_FILENAME
+def calendar_path(destination: Path, year_folder: str) -> Path:
+    """Return <destination>/<academic year folder>/calendari.ics."""
+    result = destination / year_folder / CALENDAR_FILENAME
     return result
 
 
@@ -214,6 +214,7 @@ class CalendarRequest:
     academic_year: str
     destination: Path
     aliases: dict[int, str]
+    year_folder: str = ""  # where the file goes; '' = the academic year (RF20)
 
 
 def export_calendar(
@@ -235,7 +236,9 @@ def export_calendar(
         aliases=request.aliases,
     )
     text = build_ics(events, options, sequences, now)
-    path = calendar_path(request.destination, request.academic_year)
+    # UIDs and the calendar name keep the academic year even if its folder is
+    # renamed, so re-importing never duplicates events.
+    path = calendar_path(request.destination, request.year_folder or request.academic_year)
     write_atomic(path, text)
     result = (path, len(events))
     return result

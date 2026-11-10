@@ -106,7 +106,12 @@ class OtherSitesTests(unittest.TestCase):
         self.assertEqual(config.settings_from_dict({}).other_sites, [])
         data = {
             "other_sites": [
-                {"site_url": "https://x.test/2025-26", "user_id": 42, "selected_courses": [1]},
+                {
+                    "site_url": "https://x.test/2025-26",
+                    "user_id": 42,
+                    "selected_courses": [1],
+                    "year_folder": "2n Curs",
+                },
                 {"site_url": ""},
                 "not a dict",
                 {"site_url": "https://x.test/2024-25", "user_id": "bad"},
@@ -121,15 +126,29 @@ class OtherSitesTests(unittest.TestCase):
                     "user_id": 42,
                     "selected_courses": [1],
                     "known_courses": [],
+                    "year_folder": "2n Curs",
                 },
                 {
                     "site_url": "https://x.test/2024-25",
                     "user_id": 0,
                     "selected_courses": [],
                     "known_courses": [],
+                    "year_folder": "",
                 },
             ],
         )
+
+
+class FolderSettingsTests(unittest.TestCase):
+    """year_folder and campus_subfolder in the config file (RF20)."""
+
+    def test_defaults_and_values(self) -> None:
+        """Missing or wrong values mean 'no custom name'; strings are kept."""
+        empty = config.settings_from_dict({"year_folder": 3, "campus_subfolder": None})
+        self.assertEqual((empty.year_folder, empty.campus_subfolder), ("", ""))
+        data = {"year_folder": "2n Curs", "campus_subfolder": "Campus"}
+        settings = config.settings_from_dict(data)
+        self.assertEqual((settings.year_folder, settings.campus_subfolder), ("2n Curs", "Campus"))
 
 
 class LanguageTests(unittest.TestCase):

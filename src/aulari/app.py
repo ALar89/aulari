@@ -5,6 +5,7 @@ everything here can be tested without a window. Methods that use the
 network are meant to run in a worker thread (CLAUDE.md section 3).
 """
 
+import functools
 import logging
 import sqlite3
 import threading
@@ -31,6 +32,8 @@ from aulari.sync import (
     SyncLockedError,
     SyncSummary,
     SyncTarget,
+    course_folder_path,
+    course_root,
     load_machine_id,
     take_over_ownership,
 )
@@ -113,6 +116,63 @@ def _event_start(event: calendar_export.CalendarEvent) -> int:
     return result
 
 
+@dataclass
+class SubfolderPlan:
+    """What changes when the campus subfolder changes (RF20)."""
+
+    changes: list[tuple[int, int, str]] = field(default_factory=list)  # site, course, new folder
+    moves: list[tuple[str, str]] = field(default_factory=list)  # old, new section folder
+    old_folders: list[str] = field(default_factory=list)
+
+    def add(
+        self, site_id: int, course_id: int, folders: tuple[str, str], sections: list[str]
+    ) -> None:
+        """Add one course: its (old, new) folder and the section folders to move."""
+        old_folder, new_folder = folders
+        self.changes.append((site_id, course_id, new_folder))
+        self.old_folders.append(old_folder)
+        for section in sections:
+            self.moves.append((f"{old_folder}/{section}", f"{new_folder}/{section}"))
+
+
+def clean_folder_name(name: str) -> str:
+    """Return a sanitized folder name typed by the user, or '' for a blank one.
+
+    Raises: AppError('error_folder_invalid') if it has no usable characters.
+    """
+    result = ""
+    if name.strip():
+        try:
+            result = organizer.sanitize_filename(name.strip())
+        except ValueError as error:
+            raise AppError("error_folder_invalid") from error
+    return result
+
+
+def site_year_dir(site: dict) -> str:
+    """Return the academic year folder name of a saved site ('' if it has no year)."""
+    result = site["year_folder"] or organizer.academic_year_from_site(site["site_url"]) or ""
+    return result
+
+
+def move_and_update(pending: list[tuple[Path, Path]], update: Callable[[], None]) -> None:
+    """Rename each (old, new) folder, then call update; undo the moves if anything fails.
+
+    Raises: OSError; sqlite3.Error; KeyError.
+    """
+    done = []
+    try:
+        for old_path, new_path in pending:
+            new_path.parent.mkdir(parents=True, exist_ok=True)
+            old_path.rename(new_path)
+            done.append((old_path, new_path))
+        update()
+    except OSError, sqlite3.Error, KeyError:
+        for old_path, new_path in reversed(done):
+            new_path.rename(old_path)
+        raise
+
+
 class CampusApp:
     """Settings + login + course list + sync + calendar, for one user and site."""
 
@@ -142,6 +202,7 @@ class CampusApp:
             "user_id": self.settings.user_id,
             "selected_courses": list(self.settings.selected_courses),
             "known_courses": list(self.settings.known_courses),
+            "year_folder": self.settings.year_folder,
         }
         return result
 
@@ -151,6 +212,7 @@ class CampusApp:
         self.settings.user_id = site["user_id"]
         self.settings.selected_courses = list(site["selected_courses"])
         self.settings.known_courses = list(site["known_courses"])
+        self.settings.year_folder = site["year_folder"]
 
     def _find_other(self, site_url: str) -> dict | None:
         """Return the saved (inactive) site with that URL, or None."""
@@ -211,7 +273,13 @@ class CampusApp:
             raise AppError("error_no_year")
         self.settings.other_sites.append(self._active_site())
         self._load_site(
-            {"site_url": clean, "user_id": 0, "selected_courses": [], "known_courses": []}
+            {
+                "site_url": clean,
+                "user_id": 0,
+                "selected_courses": [],
+                "known_courses": [],
+                "year_folder": "",
+            }
         )
         self.save()
 
@@ -248,6 +316,7 @@ class CampusApp:
             self.settings.user_id = 0
             self.settings.selected_courses = []
             self.settings.known_courses = []
+            self.settings.year_folder = ""
         self.save()
 
     def set_destination(self, destination: Path) -> None:
@@ -393,12 +462,25 @@ class CampusApp:
 
     # --- folders and news ----------------------------------------------
 
+    def year_folder(self) -> str | None:
+        """Return the folder name of the active academic year ('2026-27' by default, RF20).
+
+        None if the site URL has no academic year.
+        """
+        result = organizer.academic_year_from_site(self.settings.site_url)
+        if result is not None and self.settings.year_folder:
+            result = self.settings.year_folder
+        return result
+
     def course_folder(self, choice: CourseChoice) -> Path | None:
-        """Return the folder of a synced course on disk, or None if it does not exist."""
+        """Return the folder of a synced course on disk, or None if it does not exist.
+
+        It is the course folder itself, above the campus subfolder (RF20).
+        """
         result = None
-        year = organizer.academic_year_from_site(self.settings.site_url)
-        if choice.alias and year is not None and self.settings.destination:
-            folder = Path(self.settings.destination) / year / choice.alias
+        year_dir = self.year_folder()
+        if choice.alias and year_dir is not None and self.settings.destination:
+            folder = Path(self.settings.destination) / year_dir / choice.alias
             if folder.is_dir():
                 result = folder
         return result
@@ -406,9 +488,9 @@ class CampusApp:
     def news_file(self) -> Path | None:
         """Return Novedades.txt of the current academic year, or None if there is none yet."""
         result = None
-        year = organizer.academic_year_from_site(self.settings.site_url)
-        if year is not None and self.settings.destination:
-            path = news.news_path(Path(self.settings.destination), year)
+        year_dir = self.year_folder()
+        if year_dir is not None and self.settings.destination:
+            path = news.news_path(Path(self.settings.destination), year_dir)
             if path.is_file():
                 result = path
         return result
@@ -464,8 +546,7 @@ class CampusApp:
         year = organizer.academic_year_from_site(self.settings.site_url)
         if year is not None and self.settings.user_id > 0:
             with Registry(self.app_dir / REGISTRY_NAME) as registry:
-                folders = registry.course_folders(self._site_id(registry, year))
-            result = {cid: PurePosixPath(folder).name for cid, folder in folders.items()}
+                result = registry.course_aliases(self._site_id(registry, year))
         return result
 
     def rename_course(self, course_id: int, new_alias: str) -> str:
@@ -488,48 +569,145 @@ class CampusApp:
             folders = registry.course_folders(site_id)
             if course_id not in folders:
                 raise AppError("error_alias_not_synced")
-            old_folder = folders[course_id]
-            new_folder = f"{target.academic_year}/{alias}"
-            others = {
-                PurePosixPath(folder).name.casefold()
-                for cid, folder in folders.items()
-                if cid != course_id
-            }
+            aliases = registry.course_aliases(site_id)
+            others = {name.casefold() for cid, name in aliases.items() if cid != course_id}
             if alias.casefold() in others:
                 raise AppError("error_alias_taken")
-            if new_folder != old_folder:
-                self._move_course_folder(registry, site_id, course_id, (old_folder, new_folder))
+            # The campus subfolder, if any, moves with the course folder (RF20).
+            old_root = course_root(folders[course_id])
+            new_root = f"{PurePosixPath(old_root).parent.as_posix()}/{alias}"
+            new_folder = new_root + folders[course_id][len(old_root) :]
+            if new_root != old_root:
+                update = functools.partial(
+                    registry.rename_course_folder, site_id, course_id, alias, new_folder
+                )
+                self._move_folders([(old_root, new_root)], "error_alias_taken", update)
         return alias
 
-    def _move_course_folder(
-        self, registry: Registry, site_id: int, course_id: int, folders: tuple[str, str]
+    def _move_folders(
+        self, moves: list[tuple[str, str]], taken_key: str, update: Callable[[], None]
     ) -> None:
-        """Move <destination>/<old> to <destination>/<new> and update the registry.
+        """Move folders inside the destination, then update the registry (RF4, RF20).
 
-        Raises: AppError('error_alias_taken'); SyncLockedError; OSError; sqlite3.Error.
+        moves holds (old, new) paths relative to the destination; an old folder
+        that does not exist is skipped. Everything runs under the sync lock. If
+        a move or the update fails, the folders already moved are moved back.
+        Without a destination only the registry is updated.
+
+        Raises: AppError(taken_key) if a new folder already exists; ValueError
+        if a path escapes the destination; SyncLockedError; OSError;
+        sqlite3.Error; KeyError.
         """
-        old_folder, new_folder = folders
-        destination = Path(self.settings.destination)
-        old_path = destination / old_folder
-        new_path = destination / new_folder
-        # Check both stay inside, but keep the unresolved paths: resolve()
-        # returns the on-disk case and would turn 'So' back into 'SO'.
-        organizer.ensure_inside(destination, old_path)
-        organizer.ensure_inside(destination, new_path)
-        with SyncLock(destination):
-            # A case-only change ('SO' -> 'So') points to the same folder on Windows.
-            same_folder = old_path.exists() and new_path.exists() and old_path.samefile(new_path)
-            if new_path.exists() and not same_folder:
-                raise AppError("error_alias_taken")
-            moved = old_path.exists()
-            if moved:
-                old_path.rename(new_path)
-            try:
-                registry.rename_course_folder(site_id, course_id, new_path.name, new_folder)
-            except sqlite3.Error:
-                if moved:
-                    new_path.rename(old_path)
-                raise
+        if not self.settings.destination:
+            update()
+        else:
+            destination = Path(self.settings.destination)
+            pairs = []
+            for old, new in moves:
+                old_path = destination / old
+                new_path = destination / new
+                # Check both stay inside, but keep the unresolved paths: resolve()
+                # returns the on-disk case and would turn 'So' back into 'SO'.
+                organizer.ensure_inside(destination, old_path)
+                organizer.ensure_inside(destination, new_path)
+                pairs.append((old_path, new_path))
+            with SyncLock(destination):
+                pending = [
+                    (old_path, new_path) for old_path, new_path in pairs if old_path.exists()
+                ]
+                for old_path, new_path in pending:
+                    # A case-only change ('SO' -> 'So') is the same folder on Windows.
+                    if new_path.exists() and not old_path.samefile(new_path):
+                        raise AppError(taken_key)
+                move_and_update(pending, update)
+
+    # --- academic year folder and campus subfolder (RF20) --------------
+
+    def rename_year_folder(self, new_name: str) -> str:
+        """Rename the folder of the active academic year ('2026-27' -> '2n Curs', RF20).
+
+        The folder moves on disk with everything inside (courses, calendar,
+        Novedades.txt, the user's own folders) and the registry is updated.
+        An empty name goes back to the academic year. Returns the final name.
+
+        Raises: AppError('error_no_year', 'error_folder_invalid',
+        'error_folder_taken'); SyncLockedError; OSError; sqlite3.Error.
+        """
+        year = organizer.academic_year_from_site(self.settings.site_url)
+        old = self.year_folder()
+        if year is None or old is None:
+            raise AppError("error_no_year")
+        name = clean_folder_name(new_name) or year
+        others = {site_year_dir(site).casefold() for site in self.settings.other_sites}
+        if name.casefold() in others:
+            raise AppError("error_folder_taken")
+        if name != old:
+            with Registry(self.app_dir / REGISTRY_NAME) as registry:
+                # Every user of this site, also one whose session was closed.
+                changes = []
+                for site_id in registry.site_ids(self.settings.site_url):
+                    for course_id, folder in registry.course_folders(site_id).items():
+                        if folder.startswith(old + "/"):
+                            changes.append((site_id, course_id, name + folder[len(old) :]))
+                update = functools.partial(registry.move_course_folders, changes)
+                self._move_folders([(old, name)], "error_folder_taken", update)
+            self.settings.year_folder = "" if name == year else name
+            self.save()
+        return name
+
+    def set_campus_subfolder(self, new_name: str) -> str:
+        """Put the campus material of every course in a subfolder, or take it out (RF20).
+
+        'Campus' turns '2n Curs/BD/01 - Tema 1' into '2n Curs/BD/Campus/01 - Tema 1';
+        an empty name takes it out again. Only the section folders that Aulari
+        created are moved: anything else in the course folder stays where it is.
+        Returns the final name ('' = no subfolder).
+
+        Raises: AppError('error_folder_invalid', 'error_folder_taken');
+        SyncLockedError; OSError; sqlite3.Error.
+        """
+        name = clean_folder_name(new_name)
+        if name != self.settings.campus_subfolder:
+            with Registry(self.app_dir / REGISTRY_NAME) as registry:
+                plan = self._subfolder_plan(registry, name)
+                update = functools.partial(registry.move_course_folders, plan.changes)
+                self._move_folders(plan.moves, "error_folder_taken", update)
+            self.settings.campus_subfolder = name
+            self.save()
+            self._remove_empty_folders(plan.old_folders)
+        return name
+
+    def _subfolder_plan(self, registry: Registry, name: str) -> SubfolderPlan:
+        """Return what changes when the campus subfolder becomes name.
+
+        Every registered course of every academic year is included, also those
+        of a year whose session was closed.
+
+        Raises: AppError('error_folder_taken') if a section folder has that name.
+        """
+        result = SubfolderPlan()
+        for site_id in registry.site_ids():
+            for course_id, folder in registry.course_folders(site_id).items():
+                sections = registry.section_folders(site_id, course_id)
+                if name.casefold() in {section.casefold() for section in sections}:
+                    raise AppError("error_folder_taken")
+                root = PurePosixPath(course_root(folder))
+                new_folder = course_folder_path(root.parent.as_posix(), root.name, name)
+                if new_folder != folder:
+                    result.add(site_id, course_id, (folder, new_folder), sections)
+        return result
+
+    def _remove_empty_folders(self, folders: list[str]) -> None:
+        """Delete the old campus subfolders that were left empty (failures are logged)."""
+        if self.settings.destination:
+            destination = Path(self.settings.destination)
+            for folder in folders:
+                path = destination / folder
+                if folder != course_root(folder) and path.is_dir() and not any(path.iterdir()):
+                    try:
+                        path.rmdir()
+                    except OSError as error:
+                        logger.warning("Could not remove an empty folder: %s", error)
 
     # --- sync ----------------------------------------------------------
 
@@ -544,8 +722,23 @@ class CampusApp:
         if year is None:
             raise AppError("error_no_year")
         result = SyncTarget(
-            self.settings.site_url, self.settings.user_id, year, Path(self.settings.destination)
+            self.settings.site_url,
+            self.settings.user_id,
+            year,
+            Path(self.settings.destination),
+            self.settings.year_folder,
+            self.settings.campus_subfolder,
         )
+        return result
+
+    def _selected_aliases(self, registry: Registry, site_id: int) -> dict[int, str]:
+        """Return {course id: alias} of the selected courses already synced."""
+        aliases = registry.course_aliases(site_id)
+        result = {
+            course_id: aliases[course_id]
+            for course_id in self.settings.selected_courses
+            if course_id in aliases
+        }
         return result
 
     def _export_calendar(
@@ -553,14 +746,14 @@ class CampusApp:
     ) -> None:
         """Export the calendar of the selected courses into result (errors are kept)."""
         site_id = registry.get_or_create_site(target.site_url, target.user_id, target.academic_year)
-        folders = registry.course_folders(site_id)
-        aliases = {
-            course_id: PurePosixPath(folders[course_id]).name
-            for course_id in self.settings.selected_courses
-            if course_id in folders
-        }
+        aliases = self._selected_aliases(registry, site_id)
         request = CalendarRequest(
-            site_id, target.site_url, target.academic_year, target.destination, aliases
+            site_id,
+            target.site_url,
+            target.academic_year,
+            target.destination,
+            aliases,
+            target.year_dir(),
         )
         try:
             path, count = export_calendar(client, registry, request, datetime.now(UTC))
@@ -654,12 +847,7 @@ class CampusApp:
     ) -> None:
         """Look for new announcements in the selected courses (errors are kept, RF16)."""
         site_id = registry.get_or_create_site(target.site_url, target.user_id, target.academic_year)
-        folders = registry.course_folders(site_id)
-        aliases = {
-            course_id: PurePosixPath(folders[course_id]).name
-            for course_id in self.settings.selected_courses
-            if course_id in folders
-        }
+        aliases = self._selected_aliases(registry, site_id)
         try:
             result.announcements = extras.new_announcements(client, registry, site_id, aliases)
         except (MoodleError, requests.RequestException) as error:
@@ -707,7 +895,7 @@ class CampusApp:
 
     def _write_news(self, target: SyncTarget, result: SyncResult) -> None:
         """Add this sync's changes to Novedades.txt (a failure is only logged)."""
-        path = news.news_path(target.destination, target.academic_year)
+        path = news.news_path(target.destination, target.year_dir())
         try:
             if news.write_news(path, result.summary.changes, datetime.now(LOCAL_TIMEZONE)):
                 result.news_path = path

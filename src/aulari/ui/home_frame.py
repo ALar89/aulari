@@ -102,6 +102,10 @@ class HomeFrame(ttk.Frame):
         )
         self._site_box.pack(side="left", padx=(PADDING // 2, 0))
         self._site_box.bind("<<ComboboxSelected>>", self._site_selected)
+        self._year_folder_button = ttk.Button(
+            top, text=self._year_folder_text(), command=self._ask_year_folder
+        )
+        self._year_folder_button.pack(side="left", padx=(PADDING // 2, 0))
         self._add_site_button = ttk.Button(
             top, text=text("add_site_button"), command=self._add_site
         )
@@ -124,21 +128,7 @@ class HomeFrame(ttk.Frame):
         )
         ttk.Label(self, textvariable=self._deadlines, justify="left").pack(anchor="w")
 
-        ttk.Label(self, text=text("destination_label"), font=("", 12, "bold")).pack(
-            anchor="w", pady=(PADDING, 0)
-        )
-        row = ttk.Frame(self)
-        row.pack(fill="x")
-        ttk.Entry(row, textvariable=self._destination, state="readonly").pack(
-            side="left", fill="x", expand=True
-        )
-        self._choose_button = ttk.Button(
-            row, text=text("destination_choose"), command=self._choose_destination
-        )
-        self._choose_button.pack(side="left", padx=(PADDING, 0))
-        self._open_button = ttk.Button(row, text=text("open_folder"), command=self._open_folder)
-        self._open_button.pack(side="left", padx=(PADDING, 0))
-
+        self._build_destination_rows()
         self._build_auto_row()
 
         buttons = ttk.Frame(self)
@@ -182,6 +172,27 @@ class HomeFrame(ttk.Frame):
             anchor="w", pady=(PADDING, 0)
         )
 
+    def _build_destination_rows(self) -> None:
+        """Create the destination folder row and the campus subfolder button (RF20)."""
+        ttk.Label(self, text=text("destination_label"), font=("", 12, "bold")).pack(
+            anchor="w", pady=(PADDING, 0)
+        )
+        row = ttk.Frame(self)
+        row.pack(fill="x")
+        ttk.Entry(row, textvariable=self._destination, state="readonly").pack(
+            side="left", fill="x", expand=True
+        )
+        self._choose_button = ttk.Button(
+            row, text=text("destination_choose"), command=self._choose_destination
+        )
+        self._choose_button.pack(side="left", padx=(PADDING, 0))
+        self._open_button = ttk.Button(row, text=text("open_folder"), command=self._open_folder)
+        self._open_button.pack(side="left", padx=(PADDING, 0))
+        self._subfolder_button = ttk.Button(
+            self, text=self._subfolder_text(), command=self._ask_subfolder
+        )
+        self._subfolder_button.pack(anchor="w", pady=(PADDING // 2, 0))
+
     def _build_auto_row(self) -> None:
         """Create the automatic sync checkbox and interval selector (D7)."""
         auto_row = ttk.Frame(self)
@@ -216,6 +227,8 @@ class HomeFrame(ttk.Frame):
         self._grades_button.configure(state=state)
         self._choose_button.configure(state=state)
         self._open_button.configure(state=state)
+        self._year_folder_button.configure(state=state)
+        self._subfolder_button.configure(state=state)
         self._logout_button.configure(state=state)
         self._add_site_button.configure(state=state)
         self._remove_site_button.configure(state=state)
@@ -311,6 +324,58 @@ class HomeFrame(ttk.Frame):
         """Save the selection every time a checkbox changes."""
         selected = [course_id for course_id, var in self._checks.items() if var.get()]
         self._app.set_selection(selected)
+
+    # --- academic year folder and campus subfolder (RF20) -------------
+
+    def _year_folder_text(self) -> str:
+        """Return the label of the academic year folder button."""
+        result = text("year_folder_button", name=self._app.year_folder() or "?")
+        return result
+
+    def _subfolder_text(self) -> str:
+        """Return the label of the campus subfolder button."""
+        name = self._app.settings.campus_subfolder or text("subfolder_none")
+        result = text("subfolder_button", name=name)
+        return result
+
+    def _ask_year_folder(self) -> None:
+        """Ask for the folder name of this academic year and rename it (RF20)."""
+        year = organizer.academic_year_from_site(self._app.settings.site_url)
+        current = self._app.year_folder()
+        if year is not None and current is not None:
+            new_name = simpledialog.askstring(
+                text("app_title"),
+                text("year_folder_prompt", year=year),
+                initialvalue=current,
+                parent=self,
+            )
+            if new_name is not None and new_name.strip() != current:
+                self._set_busy(True)
+                task = functools.partial(self._app.rename_year_folder, new_name)
+                self._worker.start(task, self._year_folder_done, self._task_failed)
+
+    def _year_folder_done(self, name: object) -> None:
+        """Main thread: the academic year folder was renamed."""
+        self._year_folder_button.configure(text=self._year_folder_text())
+        self._status.set(text("year_folder_done", name=name))
+        self._set_busy(False)
+
+    def _ask_subfolder(self) -> None:
+        """Ask for the campus subfolder name and move the material (RF20)."""
+        current = self._app.settings.campus_subfolder
+        new_name = simpledialog.askstring(
+            text("app_title"), text("subfolder_prompt"), initialvalue=current, parent=self
+        )
+        if new_name is not None and new_name.strip() != current:
+            self._set_busy(True)
+            task = functools.partial(self._app.set_campus_subfolder, new_name)
+            self._worker.start(task, self._subfolder_done, self._task_failed)
+
+    def _subfolder_done(self, name: object) -> None:
+        """Main thread: the campus material is now in its new place."""
+        self._subfolder_button.configure(text=self._subfolder_text())
+        self._status.set(text("subfolder_done", name=name) if name else text("subfolder_off"))
+        self._set_busy(False)
 
     # --- destination ---------------------------------------------------
 

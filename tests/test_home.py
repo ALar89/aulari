@@ -97,6 +97,15 @@ class FakeApp:
         """Return the only saved site."""
         return [self.settings.site_url]
 
+    def year_folder(self) -> str:
+        """Return the academic year folder name (RF20)."""
+        return self.settings.year_folder or "2026-27"
+
+    def set_campus_subfolder(self, name: str) -> str:
+        """Remember the campus subfolder (RF20)."""
+        self.settings.campus_subfolder = name.strip()
+        return self.settings.campus_subfolder
+
     def list_courses(self) -> list[CourseChoice]:
         """Return the two test courses."""
         return list(CHOICES)
@@ -168,6 +177,18 @@ class HomeFrameSmokeTests(unittest.TestCase):
         self.pump_until(lambda: "Entrega P1" in self.frame._deadlines.get())
         self.assertIn("[SO] Entrega P1", self.frame._deadlines.get())
         self.assertEqual(str(self.frame._sync_button.cget("state")), "normal")
+
+    def test_folder_buttons(self) -> None:
+        """The year folder and subfolder buttons show the current names (RF20)."""
+        self.pump_until(lambda: "Entrega P1" in self.frame._deadlines.get())
+        year_label = self.frame._year_folder_button.cget("text")
+        self.assertEqual(year_label, text("year_folder_button", name="2026-27"))
+        none = text("subfolder_button", name=text("subfolder_none"))
+        self.assertEqual(self.frame._subfolder_button.cget("text"), none)
+        self.frame._subfolder_done(self.app.set_campus_subfolder("Campus"))
+        campus = text("subfolder_button", name="Campus")
+        self.assertEqual(self.frame._subfolder_button.cget("text"), campus)
+        self.assertEqual(self.frame._status.get(), text("subfolder_done", name="Campus"))
 
 
 class NewsWindowTests(unittest.TestCase):

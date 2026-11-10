@@ -213,5 +213,37 @@ class RenameTests(RegistryTestCase):
             self.registry.rename_course_folder(self.site, 999, "X", "2026-27/X")
 
 
+class FolderTests(RegistryTestCase):
+    """course_aliases(), section_folders() and move_course_folders() (RF20)."""
+
+    def test_aliases_and_sections(self) -> None:
+        """Aliases come from their own column, not from the end of the folder path."""
+        self.registry.ensure_course(self.site, 2000, "BD", "2n Curs/BD/Campus")
+        self.registry.section_folder(self.site, 2000, 7, "01 - Tema 1")
+        self.registry.section_folder(self.site, 2000, 3, "00 - General")
+        self.assertEqual(self.registry.course_aliases(self.site)[2000], "BD")
+        self.assertEqual(
+            self.registry.section_folders(self.site, 2000), ["00 - General", "01 - Tema 1"]
+        )
+
+    def test_move_several_courses_at_once(self) -> None:
+        """Every course folder and stored path changes; aliases stay."""
+        self.registry.ensure_course(self.site, 2000, "BD", "2026-27/BD")
+        self.registry.record_download(self.site, COURSE, KEY, version("2026-27/SO/00 - G/a.pdf"))
+        self.registry.move_course_folders(
+            [(self.site, COURSE, "2n Curs/SO/Campus"), (self.site, 2000, "2n Curs/BD/Campus")]
+        )
+        latest = self.registry.latest_version(self.site, KEY)
+        self.assertEqual(latest["relative_path"], "2n Curs/SO/Campus/00 - G/a.pdf")
+        self.assertEqual(self.registry.course_folders(self.site)[2000], "2n Curs/BD/Campus")
+        self.assertEqual(self.registry.course_aliases(self.site)[COURSE], "SO")
+
+    def test_unknown_course_changes_nothing(self) -> None:
+        """One unknown course rolls back the whole change."""
+        with self.assertRaises(KeyError):
+            self.registry.move_course_folders([(self.site, COURSE, "X/SO"), (self.site, 999, "X")])
+        self.assertEqual(self.registry.course_folders(self.site)[COURSE], "2026-27/SO")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,7 @@ Aulari is a desktop app for students. It downloads the files of your courses fro
 
 - **Login with your university's single sign-on** (for example CAS): you log in in your own browser and, on Windows, the app receives the session by itself (on macOS you copy one address by hand for now, see below). No password is ever typed into the app.
 - **Tidy folders**: `<destination>/<academic year>/<course>/<NN - section>/`, with short course aliases (`Camps i Ones Electromagnètiques` → `CiOE`) that you can rename.
+- **Fits the folders you already have**: rename each academic year folder (`2026-27` → `2n Curs`) and, if you like, keep the campus material in a subfolder of each course (`BD/Campus/`) next to your own notes. You can change both at any time; Aulari moves only what it downloaded.
 - **Nothing is ever overwritten**: when a teacher uploads a new version, it is saved next to the old one as `Name (YYYY-MM-DD).ext`. Files removed from Moodle stay on your disk.
 - **Files from resources, folders, pages and assignment statements**, plus external links as `.url` shortcuts.
 - **Calendar**: your deadlines in an `.ics` file you can import into any calendar app (tested with Proton Calendar, re-importing does not duplicate events).

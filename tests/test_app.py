@@ -344,6 +344,149 @@ class AliasTests(AppTestCase):
         self.assertTrue((self.year_dir / "SO").exists())
 
 
+class YearFolderTests(AppTestCase):
+    """rename_year_folder(): the academic year folder gets the user's name (RF20)."""
+
+    def setUp(self) -> None:
+        """Log in, select two courses and choose the destination."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([472, 1072])
+        self.app.set_destination(self.destination)
+
+    def test_name_chosen_before_the_first_sync(self) -> None:
+        """An existing folder of the user with that name is used, and its content kept."""
+        notes = self.destination / "2n Curs" / "SO" / "Apunts"
+        notes.mkdir(parents=True)
+        self.assertEqual(self.app.rename_year_folder(" 2n Curs "), "2n Curs")
+        self.assertEqual(CampusApp(self.app.app_dir).settings.year_folder, "2n Curs")
+        result = self.app.run_sync(self.app.list_courses())
+        year_dir = self.destination / "2n Curs"
+        self.assertTrue((year_dir / "SO" / "00 - General" / "guia.pdf").exists())
+        self.assertTrue(notes.is_dir())
+        self.assertEqual(result.calendar_path, year_dir / "calendari.ics")
+        self.assertEqual(result.news_path, year_dir / "Novedades.txt")
+        # The calendar keeps the academic year in its UIDs: re-importing does not duplicate.
+        self.assertIn("@2026-27.", result.calendar_path.read_text(encoding="utf-8"))
+        self.assertFalse((self.destination / "2026-27").exists())
+
+    def test_rename_after_sync_and_back(self) -> None:
+        """The folder moves with everything inside; an empty name restores the year."""
+        self.app.run_sync(self.app.list_courses())
+        (self.destination / "2026-27" / "Mine.txt").write_text("x", encoding="utf-8")
+        self.app.rename_year_folder("2n Curs")
+        year_dir = self.destination / "2n Curs"
+        self.assertTrue((year_dir / "SO" / "00 - General" / "guia.pdf").exists())
+        self.assertTrue((year_dir / "Mine.txt").exists())
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertEqual(self.app.course_folder(choices[1072]), year_dir / "SO")
+        self.assertEqual(self.app.news_file(), year_dir / "Novedades.txt")
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual((summary.new, summary.missing_locally), (0, 0))
+        self.assertEqual(self.app.rename_year_folder(""), "2026-27")
+        self.assertEqual(self.app.settings.year_folder, "")
+        self.assertTrue((self.destination / "2026-27" / "SO" / "00 - General").is_dir())
+
+    def test_errors(self) -> None:
+        """Invalid names, another year's folder and an existing folder are refused."""
+        self.app.run_sync(self.app.list_courses())
+        self.app.add_site("https://moodle.example.test/2025-26")
+        self.app.switch_site(SITE)
+        (self.destination / "Mine").mkdir()
+        cases = [("..", "error_folder_invalid"), ("2025-26", "error_folder_taken")]
+        cases.append(("Mine", "error_folder_taken"))
+        for name, key in cases:
+            with self.assertRaises(AppError, msg=name) as context:
+                self.app.rename_year_folder(name)
+            self.assertEqual(context.exception.key, key)
+        self.assertTrue((self.destination / "2026-27" / "SO").is_dir())
+
+    def test_rename_after_logout(self) -> None:
+        """The registry follows even if the session was closed in between."""
+        self.app.run_sync(self.app.list_courses())
+        self.app.logout()
+        self.app.rename_year_folder("2n Curs")
+        self.app.set_campus_subfolder("Campus")
+        self.log_in()
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual((summary.new, summary.missing_locally), (0, 0))
+        guia = self.destination / "2n Curs" / "SO" / "Campus" / "00 - General" / "guia.pdf"
+        self.assertTrue(guia.exists())
+
+    def test_name_follows_the_site(self) -> None:
+        """Each academic year keeps its own folder name when switching."""
+        self.app.rename_year_folder("2n Curs")
+        self.app.add_site("https://moodle.example.test/2025-26")
+        self.assertEqual(self.app.year_folder(), "2025-26")
+        self.app.rename_year_folder("1r Curs")
+        self.app.switch_site(SITE)
+        self.assertEqual(self.app.year_folder(), "2n Curs")
+
+
+class SubfolderTests(AppTestCase):
+    """set_campus_subfolder(): campus material in a subfolder of each course (RF20)."""
+
+    def setUp(self) -> None:
+        """Log in, select two courses and choose the destination."""
+        super().setUp()
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([472, 1072])
+        self.app.set_destination(self.destination)
+        self.course_dir = self.destination / "2026-27" / "SO"
+
+    def test_chosen_before_the_first_sync(self) -> None:
+        """New courses go straight into the subfolder."""
+        self.assertEqual(self.app.set_campus_subfolder(" Campus "), "Campus")
+        self.app.run_sync(self.app.list_courses())
+        self.assertTrue((self.course_dir / "Campus" / "00 - General" / "guia.pdf").exists())
+        self.assertEqual(self.app.course_aliases(), {1072: "SO", 472: "EC"})
+        choices = {choice.course_id: choice for choice in self.app.list_courses()}
+        self.assertEqual(self.app.course_folder(choices[1072]), self.course_dir)
+
+    def test_turned_on_and_off_after_sync(self) -> None:
+        """Only Aulari's section folders move; the user's folders stay; sync goes on."""
+        self.app.run_sync(self.app.list_courses())
+        (self.course_dir / "Apunts").mkdir()
+        self.app.set_campus_subfolder("Campus")
+        self.assertTrue((self.course_dir / "Campus" / "00 - General" / "guia.pdf").exists())
+        self.assertFalse((self.course_dir / "00 - General").exists())
+        self.assertTrue((self.course_dir / "Apunts").is_dir())
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual((summary.new, summary.missing_locally), (0, 0))
+        self.app.set_campus_subfolder("")
+        self.assertTrue((self.course_dir / "00 - General" / "guia.pdf").exists())
+        self.assertFalse((self.course_dir / "Campus").exists())  # left empty, so removed
+        self.assertEqual(self.app.settings.campus_subfolder, "")
+
+    def test_renamed_and_moved_with_the_alias(self) -> None:
+        """'Campus' -> 'Material' keeps a non-empty old folder; an alias moves it all."""
+        self.app.set_campus_subfolder("Campus")
+        self.app.run_sync(self.app.list_courses())
+        (self.course_dir / "Campus" / "mine.txt").write_text("x", encoding="utf-8")
+        self.app.set_campus_subfolder("Material")
+        self.assertTrue((self.course_dir / "Material" / "00 - General" / "guia.pdf").exists())
+        self.assertTrue((self.course_dir / "Campus" / "mine.txt").exists())
+        self.app.rename_course(1072, "SistOp")
+        moved = self.destination / "2026-27" / "SistOp"
+        self.assertTrue((moved / "Material" / "00 - General" / "guia.pdf").exists())
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual((summary.new, summary.missing_locally), (0, 0))
+
+    def test_conflicts_move_nothing(self) -> None:
+        """A section with that name, or a folder already there, stops the whole change."""
+        self.app.run_sync(self.app.list_courses())
+        (self.destination / "2026-27" / "EC" / "Campus" / "00 - General").mkdir(parents=True)
+        for name in ("00 - general", "Campus"):
+            with self.assertRaises(AppError, msg=name) as context:
+                self.app.set_campus_subfolder(name)
+            self.assertEqual(context.exception.key, "error_folder_taken")
+        self.assertTrue((self.course_dir / "00 - General" / "guia.pdf").exists())
+        self.assertFalse((self.course_dir / "Campus").exists())
+        self.assertEqual(self.app.settings.campus_subfolder, "")
+
+
 def discussion(discussion_id: int, subject: str, when: int) -> dict:
     """Return a news forum discussion as Moodle gives it."""
     return {

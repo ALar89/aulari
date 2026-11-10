@@ -199,6 +199,14 @@ class Registry:
         result = row["id"]
         return result
 
+    def site_ids(self, site_url: str = "") -> list[int]:
+        """Return the ids of the registered sites of a URL (any user), or of all sites."""
+        rows = self._conn.execute(
+            "SELECT id FROM sites WHERE ? = '' OR site_url = ? ORDER BY id", (site_url, site_url)
+        ).fetchall()
+        result = [row["id"] for row in rows]
+        return result
+
     def ensure_course(self, site_id: int, course_id: int, alias: str, folder: str) -> dict:
         """Return the course row, creating it with alias and folder if it is new.
 
@@ -224,10 +232,26 @@ class Registry:
         result = {row["course_id"]: row["folder"] for row in rows}
         return result
 
-    def rename_course_folder(
-        self, site_id: int, course_id: int, new_alias: str, new_folder: str
-    ) -> None:
-        """Change a course alias and folder and every stored path, in one transaction (RF4).
+    def course_aliases(self, site_id: int) -> dict[int, str]:
+        """Return {course_id: alias} for every registered course of a site."""
+        rows = self._conn.execute(
+            "SELECT course_id, alias FROM courses WHERE site_id = ?", (site_id,)
+        ).fetchall()
+        result = {row["course_id"]: row["alias"] for row in rows}
+        return result
+
+    def section_folders(self, site_id: int, course_id: int) -> list[str]:
+        """Return the folder names of the registered sections of a course, sorted."""
+        rows = self._conn.execute(
+            "SELECT folder_name FROM sections WHERE site_id = ? AND course_id = ? "
+            "ORDER BY folder_name",
+            (site_id, course_id),
+        ).fetchall()
+        result = [row["folder_name"] for row in rows]
+        return result
+
+    def _set_course_folder(self, site_id: int, course_id: int, new_folder: str) -> None:
+        """Change a course folder and the stored paths under it (no transaction of its own).
 
         Raises: KeyError if the course is not registered.
         """
@@ -237,24 +261,48 @@ class Registry:
         if row is None:
             raise KeyError(f"Course {course_id} is not registered")
         old_prefix = row["folder"] + "/"
+        self._conn.execute(
+            "UPDATE courses SET folder = ? WHERE site_id = ? AND course_id = ?",
+            (new_folder, site_id, course_id),
+        )
+        self._conn.execute(
+            "UPDATE file_versions SET relative_path = ? || substr(relative_path, ?) "
+            "WHERE substr(relative_path, 1, ?) = ? AND file_id IN "
+            "(SELECT id FROM files WHERE site_id = ? AND course_id = ?)",
+            (
+                new_folder + "/",
+                len(old_prefix) + 1,
+                len(old_prefix),
+                old_prefix,
+                site_id,
+                course_id,
+            ),
+        )
+
+    def rename_course_folder(
+        self, site_id: int, course_id: int, new_alias: str, new_folder: str
+    ) -> None:
+        """Change a course alias and folder and every stored path, in one transaction (RF4).
+
+        Raises: KeyError if the course is not registered.
+        """
         with self._conn:
+            self._set_course_folder(site_id, course_id, new_folder)
             self._conn.execute(
-                "UPDATE courses SET alias = ?, folder = ? WHERE site_id = ? AND course_id = ?",
-                (new_alias, new_folder, site_id, course_id),
+                "UPDATE courses SET alias = ? WHERE site_id = ? AND course_id = ?",
+                (new_alias, site_id, course_id),
             )
-            self._conn.execute(
-                "UPDATE file_versions SET relative_path = ? || substr(relative_path, ?) "
-                "WHERE substr(relative_path, 1, ?) = ? AND file_id IN "
-                "(SELECT id FROM files WHERE site_id = ? AND course_id = ?)",
-                (
-                    new_folder + "/",
-                    len(old_prefix) + 1,
-                    len(old_prefix),
-                    old_prefix,
-                    site_id,
-                    course_id,
-                ),
-            )
+
+    def move_course_folders(self, changes: list[tuple[int, int, str]]) -> None:
+        """Change the folder of several courses and the paths under them (RF20).
+
+        Each change is (site_id, course_id, new folder); all go in one transaction.
+
+        Raises: KeyError if a course is not registered (nothing is changed).
+        """
+        with self._conn:
+            for site_id, course_id, new_folder in changes:
+                self._set_course_folder(site_id, course_id, new_folder)
 
     def section_folder(self, site_id: int, course_id: int, section_id: int, proposed: str) -> str:
         """Return the stored folder of a section, or store and return proposed.

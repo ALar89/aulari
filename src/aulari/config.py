@@ -37,8 +37,11 @@ class Settings:
     first_run_notice_seen: bool = False
     language: str = ""  # '' = follow the system language
     auto_sync_hours: int = 0  # 0 = automatic sync off (D7)
+    year_folder: str = ""  # folder of the active academic year; '' = '2026-27' (RF20)
+    campus_subfolder: str = ""  # folder for the campus material in each course; '' = none
     # Other academic year sites (RF19): dicts with site_url, user_id,
-    # selected_courses and known_courses. The active site uses the fields above.
+    # selected_courses, known_courses and year_folder. The active site uses
+    # the fields above.
     other_sites: list[dict] = field(default_factory=list)
 
 
@@ -47,6 +50,12 @@ def _int_list(value: object) -> list[int] | None:
     result = None
     if isinstance(value, list) and all(isinstance(item, int) for item in value):
         result = list(value)
+    return result
+
+
+def _text(value: object) -> str:
+    """Return value if it is a string, or '' otherwise."""
+    result = value if isinstance(value, str) else ""
     return result
 
 
@@ -60,6 +69,7 @@ def site_from_dict(data: object) -> dict | None:
             "user_id": user_id if isinstance(user_id, int) else 0,
             "selected_courses": _int_list(data.get("selected_courses")) or [],
             "known_courses": _int_list(data.get("known_courses")) or [],
+            "year_folder": _text(data.get("year_folder")),
         }
     return result
 
@@ -85,6 +95,8 @@ def settings_from_dict(data: dict) -> Settings:
         result.language = data["language"]
     if isinstance(data.get("auto_sync_hours"), int):
         result.auto_sync_hours = data["auto_sync_hours"]
+    result.year_folder = _text(data.get("year_folder"))
+    result.campus_subfolder = _text(data.get("campus_subfolder"))
     if isinstance(data.get("other_sites"), list):
         sites = [site_from_dict(item) for item in data["other_sites"]]
         result.other_sites = [site for site in sites if site is not None]
