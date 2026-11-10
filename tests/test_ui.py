@@ -4,9 +4,14 @@ messages.error_message() is pure. Worker needs a Tk root; the tests are
 skipped where no display is available (for example, a headless CI).
 """
 
+import os
+import tempfile
 import threading
 import tkinter as tk
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 import keyring.errors
 import requests
@@ -15,6 +20,8 @@ from aulari.app import AppError
 from aulari.moodle_client import InvalidTokenError, MoodleError
 from aulari.sync import NotOwnerError, SyncLockedError
 from aulari.texts import text
+from aulari.ui.login_frame import LoginFrame, system_text
+from aulari.ui.main import default_app_dir
 from aulari.ui.messages import error_message
 from aulari.ui.worker import UnexpectedError, Worker
 
@@ -50,6 +57,124 @@ class ErrorMessageTests(unittest.TestCase):
         """A Moodle error text goes through the redaction filter."""
         message = error_message(MoodleError("x", f"bad wstoken={TOKEN}"))
         self.assertNotIn(TOKEN, message)
+
+
+class AppDirTests(unittest.TestCase):
+    """Tests for default_app_dir() on each system (sys.platform is faked)."""
+
+    def test_macos_uses_application_support(self) -> None:
+        """macOS keeps the data in ~/Library/Application Support, even with LOCALAPPDATA."""
+        expected = Path.home() / "Library" / "Application Support" / "aulari"
+        with (
+            mock.patch("sys.platform", "darwin"),
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": "/elsewhere"}),
+        ):
+            self.assertEqual(default_app_dir(), expected)
+
+    def test_windows_uses_localappdata(self) -> None:
+        """Windows keeps the data in %LOCALAPPDATA%\\aulari, as before."""
+        base = Path("C:/Users/student/AppData/Local")
+        with (
+            mock.patch("sys.platform", "win32"),
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": str(base)}),
+        ):
+            self.assertEqual(default_app_dir(), base / "aulari")
+
+    def test_other_systems_use_hidden_home_folder(self) -> None:
+        """Without LOCALAPPDATA (Linux, for example) the data goes to ~/.aulari."""
+        with mock.patch("sys.platform", "linux"), mock.patch.dict(os.environ, clear=False):
+            os.environ.pop("LOCALAPPDATA", None)
+            self.assertEqual(default_app_dir(), Path.home() / ".aulari")
+
+
+class FakeLoginApp:
+    """The few CampusApp members LoginFrame uses; each attempt gets a new passport."""
+
+    def __init__(self, app_dir: Path) -> None:
+        """Start with the default site and no attempts."""
+        self.app_dir = app_dir
+        self.settings = SimpleNamespace(site_url="https://moodle.example.test/2026-27")
+        self.attempts = 0
+
+    def set_site_url(self, site_url: str) -> None:
+        """Remember the site URL typed in the screen."""
+        self.settings.site_url = site_url
+
+    def start_login(self) -> tuple[str, str]:
+        """Return a launch URL and passport that change on every attempt."""
+        self.attempts = self.attempts + 1
+        passport = f"passport{self.attempts}"
+        result = (f"{self.settings.site_url}/admin/tool/mobile/launch.php?p={passport}", passport)
+        return result
+
+    def previous_site(self) -> None:
+        """No other academic year to go back to."""
+        return None
+
+
+class LoginFrameMacTests(unittest.TestCase):
+    """The macOS copy button of LoginFrame (sys.platform is faked, clipboard is mocked)."""
+
+    def setUp(self) -> None:
+        """Create a hidden root and a fake app, or skip without a display."""
+        try:
+            self.root = tk.Tk()
+        except tk.TclError:
+            self.skipTest("No display available for Tkinter")
+        self.root.withdraw()
+        self.folder = tempfile.TemporaryDirectory()
+        self.app = FakeLoginApp(Path(self.folder.name))
+
+    def tearDown(self) -> None:
+        """Destroy the root window and delete the folder."""
+        self.root.destroy()
+        self.folder.cleanup()
+
+    def test_copy_button_copies_a_new_attempt(self) -> None:
+        """On macOS the manual part is open and each press copies a fresh launch URL."""
+        with mock.patch("sys.platform", "darwin"):
+            frame = LoginFrame(self.root, self.app, Worker(self.root), lambda: None)
+            self.assertTrue(frame._manual_visible)
+            with (
+                mock.patch.object(frame, "clipboard_clear"),
+                mock.patch.object(frame, "clipboard_append") as append,
+            ):
+                frame._copy_button.invoke()
+                frame._copy_button.invoke()
+            status = frame._status.get()
+            frame.destroy()
+        self.assertEqual(status, text("login_copied"))
+        copied = [call.args[0] for call in append.call_args_list]
+        self.assertEqual(self.app.attempts, 2)
+        self.assertTrue(copied[-1].endswith("launch.php?p=passport2"))
+        self.assertNotEqual(copied[0], copied[1])
+        self.assertEqual(frame._passport, "passport2")
+
+    def test_no_copy_button_elsewhere(self) -> None:
+        """Outside macOS the screen is unchanged: no copy button, manual part hidden."""
+        with mock.patch("sys.platform", "linux"):
+            frame = LoginFrame(self.root, self.app, Worker(self.root), lambda: None)
+            self.assertIsNone(frame._copy_button)
+            self.assertFalse(frame._manual_visible)
+            frame.destroy()
+
+
+class SystemTextTests(unittest.TestCase):
+    """Tests for system_text(): the login steps depend on the system."""
+
+    def test_macos_gets_its_own_steps(self) -> None:
+        """On macOS the manual steps are the Chrome ones, without F12."""
+        with mock.patch("sys.platform", "darwin"):
+            steps = system_text("login_manual_steps")
+        self.assertEqual(steps, text("login_manual_steps_macos"))
+        self.assertNotIn("F12", steps)
+
+    def test_windows_keeps_its_steps(self) -> None:
+        """On Windows (and elsewhere) the texts are the usual ones."""
+        for platform in ("win32", "linux"):
+            with mock.patch("sys.platform", platform):
+                self.assertEqual(system_text("login_steps"), text("login_steps"))
+                self.assertEqual(system_text("login_manual_steps"), text("login_manual_steps"))
 
 
 class WorkerTests(unittest.TestCase):

@@ -5,3 +5,6 @@
 ruff
 pip-tools
 pyinstaller
+# PyInstaller needs it on macOS only; listed here so this Windows-compiled
+# lock also pins it (pure Python, never bundled in the executable).
+macholib

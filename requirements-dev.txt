@@ -7,7 +7,9 @@
 altgraph==0.17.5 \
     --hash=sha256:c87b395dd12fabde9c99573a9749d67da8d29ef9de0125c7f536699b4a9bc9e7 \
     --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
-    # via pyinstaller
+    # via
+    #   macholib
+    #   pyinstaller
 build==1.6.1 \
     --hash=sha256:51cc11666391ab6f092070437ac747002ff46f3e4113a3622177ee6b488bfc53 \
     --hash=sha256:ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7
@@ -232,6 +234,10 @@ keyring==25.7.0 \
     # via
     #   -c requirements.txt
     #   -r requirements.in
+macholib==1.16.4 \
+    --hash=sha256:da1a3fa8266e30f0ce7e97c6a54eefaae8edd1e5f86f3eb8b95457cae90265ea \
+    --hash=sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362
+    # via -r requirements-dev.in
 more-itertools==11.2.1 \
     --hash=sha256:35a7377edd1dd6608dcb2cdf534ded55ea32d49448875ad042cd3f879fb1ded0 \
     --hash=sha256:cbf08fd0af284dc69718b9b76a8e6203df624d70209ea511e4219d350c856f63

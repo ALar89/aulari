@@ -9,6 +9,7 @@ import secrets
 import socket
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -20,6 +21,8 @@ if sys.platform == "win32":
     import winreg
 
 URL = "moodlemobile://token=c2lnbmF0dXJlOjo6dG9rZW4="
+# How long poll_with_retries() keeps trying; a connection is ready in well under 1 ms.
+POLL_TIMEOUT_SECONDS = 0.5
 OTHER_HANDLER = Handler("URL:Moodle Mobile", True, '"C:\\Moodle\\moodle.exe" "%1"')
 
 
@@ -108,6 +111,21 @@ class HandoffTests(unittest.TestCase):
         self.server.close()
         self.folder.cleanup()
 
+    def poll_with_retries(self) -> str | None:
+        """Call poll() until it returns a URL or POLL_TIMEOUT_SECONDS pass.
+
+        On macOS a loopback connection may not be ready yet right after the
+        sender returns, so a single poll() can miss it; the message then stays
+        queued and, with listen(1), the next connection times out.
+
+        Raises: OSError on socket errors.
+        """
+        result = None
+        deadline = time.monotonic() + POLL_TIMEOUT_SECONDS
+        while result is None and time.monotonic() < deadline:
+            result = self.server.poll()
+        return result
+
     def send_raw(self, data: bytes) -> None:
         """Connect to the server and send raw bytes."""
         with socket.create_connection(("127.0.0.1", self.port), timeout=5) as connection:
@@ -121,21 +139,21 @@ class HandoffTests(unittest.TestCase):
         """The callback process delivers the URL; the file never holds it."""
         self.assertNotIn("token", (self.app_dir / login_handoff.HANDOFF_NAME).read_text())
         self.assertTrue(login_handoff.send_to_running_app(self.app_dir, URL))
-        self.assertEqual(self.server.poll(), URL)
+        self.assertEqual(self.poll_with_retries(), URL)
 
     def test_wrong_key_is_ignored(self) -> None:
         """A message with another key is dropped and the server keeps waiting."""
         self.send_raw(json.dumps({"key": "not-the-key", "url": URL}).encode("utf-8"))
-        self.assertIsNone(self.server.poll())
+        self.assertIsNone(self.poll_with_retries())
         self.assertTrue(login_handoff.send_to_running_app(self.app_dir, URL))
-        self.assertEqual(self.server.poll(), URL)
+        self.assertEqual(self.poll_with_retries(), URL)
 
     def test_garbage_and_huge_messages_are_ignored(self) -> None:
         """Non-JSON or oversized messages give None."""
         self.send_raw(b"\xff\xfe not json")
-        self.assertIsNone(self.server.poll())
+        self.assertIsNone(self.poll_with_retries())
         self.send_raw(b"x" * (login_handoff.MAX_MESSAGE_BYTES + 100))
-        self.assertIsNone(self.server.poll())
+        self.assertIsNone(self.poll_with_retries())
 
     def test_close_removes_file_and_refuses(self) -> None:
         """After close(), the callback reports that no window is waiting."""

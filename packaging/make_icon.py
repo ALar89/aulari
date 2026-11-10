@@ -1,12 +1,14 @@
-"""Build the Windows icon (aulari.ico) from the 1024 px logo, with the standard library only.
+"""Build the app icons from the 1024 px logo, with the standard library only.
 
 Run from the project folder:
     python packaging/make_icon.py
 
 It reads packaging/aulari-logo-1024.png (8-bit RGBA, not interlaced), scales it
 down with area averaging on premultiplied alpha (no dark fringes on the
-transparent edges) and writes an .ico whose images are stored as PNG, which
-Windows Vista and later understand.
+transparent edges) and writes:
+- src/aulari/assets/aulari.ico, for Windows: its images are stored as PNG,
+  which Windows Vista and later understand;
+- packaging/aulari.icns, for the macOS app bundle: 16 to 1024 px, also as PNG.
 """
 
 import struct
@@ -18,6 +20,24 @@ SOURCE = ROOT / "packaging" / "aulari-logo-1024.png"
 TARGET = ROOT / "src" / "aulari" / "assets" / "aulari.ico"
 SIZES = (16, 24, 32, 48, 64, 128, 256)
 FIRST_STEP = 256  # 1024 -> 256 is an exact 4x4 average; smaller sizes start from it
+ICNS_TARGET = ROOT / "packaging" / "aulari.icns"
+# Sizes the .icns needs on top of the .ico ones; they are scaled from the full logo.
+ICNS_LARGE_SIZES = (512, 1024)
+# (type, pixel size) of each .icns image; "@2x" types reuse the double size.
+ICNS_ENTRIES = (
+    (b"icp4", 16),
+    (b"icp5", 32),
+    (b"icp6", 64),
+    (b"ic07", 128),
+    (b"ic08", 256),
+    (b"ic09", 512),
+    (b"ic10", 1024),  # 512@2x
+    (b"ic11", 32),  # 16@2x
+    (b"ic12", 64),  # 32@2x
+    (b"ic13", 256),  # 128@2x
+    (b"ic14", 512),  # 256@2x
+)
+ICNS_HEADER_SIZE = 8  # four-byte type plus four-byte length
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 CHANNELS = 4
@@ -254,15 +274,29 @@ def build_ico(images: list[tuple[int, bytes]]) -> bytes:
     return result
 
 
+def build_icns(pngs: dict[int, bytes]) -> bytes:
+    """Return an .icns file with one PNG image per entry of ICNS_ENTRIES.
+
+    Raises: KeyError if a size of ICNS_ENTRIES is missing from pngs.
+    """
+    body = bytearray()
+    for kind, size in ICNS_ENTRIES:
+        png = pngs[size]
+        body.extend(kind + struct.pack(">I", ICNS_HEADER_SIZE + len(png)) + png)
+    result = b"icns" + struct.pack(">I", ICNS_HEADER_SIZE + len(body)) + bytes(body)
+    return result
+
+
 def main() -> None:
-    """Read the logo, build every size and write the .ico.
+    """Read the logo, build every size and write the .ico and the .icns.
 
     Raises: OSError or ValueError if the logo cannot be read or is not square.
     """
     width, height, pixels = read_png(SOURCE)
-    if width != height or width < FIRST_STEP:
-        raise ValueError("The logo must be square and at least 256 px")
-    base = shrink(premultiplied_rows(width, height, pixels), FIRST_STEP)
+    if width != height or width < max(ICNS_LARGE_SIZES):
+        raise ValueError("The logo must be square and at least 1024 px")
+    full = premultiplied_rows(width, height, pixels)
+    base = shrink(full, FIRST_STEP)
     images = []
     for size in SIZES:
         rows = base if size == FIRST_STEP else shrink(base, size)
@@ -271,6 +305,13 @@ def main() -> None:
     with TARGET.open("wb") as icon_file:
         icon_file.write(build_ico(images))
     print(f"Wrote {TARGET.relative_to(ROOT)} ({', '.join(str(size) for size in SIZES)} px)")
+    pngs = dict(images)
+    for size in ICNS_LARGE_SIZES:
+        rows = full if size == width else shrink(full, size)
+        pngs[size] = encode_png(size, rgba_bytes(rows))
+    with ICNS_TARGET.open("wb") as icns_file:
+        icns_file.write(build_icns(pngs))
+    print(f"Wrote {ICNS_TARGET.relative_to(ROOT)} (16 to 1024 px)")
 
 
 if __name__ == "__main__":

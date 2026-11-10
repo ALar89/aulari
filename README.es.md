@@ -12,7 +12,7 @@ Aulari es una aplicación de escritorio para estudiantes. Descarga los archivos 
 
 ## Funciones
 
-- **Inicio de sesión automático con el sistema de acceso de tu universidad** (por ejemplo, CAS): inicias sesión en tu propio navegador y la aplicación recibe la sesión sola. Nunca se escribe ninguna contraseña en la aplicación.
+- **Inicio de sesión con el sistema de acceso de tu universidad** (por ejemplo, CAS): inicias sesión en tu propio navegador y, en Windows, la aplicación recibe la sesión sola (en macOS, de momento, copias una dirección a mano; ver más abajo). Nunca se escribe ninguna contraseña en la aplicación.
 - **Carpetas ordenadas**: `<destino>/<curso académico>/<asignatura>/<NN - sección>/`, con alias cortos de asignatura (`Camps i Ones Electromagnètiques` → `CiOE`) que puedes cambiar.
 - **Nunca se sobrescribe nada**: cuando un profesor sube una versión nueva, se guarda al lado de la antigua como `Nombre (AAAA-MM-DD).ext`. Los archivos eliminados del campus se quedan en tu disco.
 - **Archivos de recursos, carpetas, páginas y enunciados de tareas**, y los enlaces externos como accesos directos `.url`.
@@ -23,9 +23,9 @@ Aulari es una aplicación de escritorio para estudiantes. Descarga los archivos 
 
 ## Requisitos
 
-- Windows 10 u 11.
+- Windows 10 u 11, o macOS en un Mac con Apple Silicon (M1 o posterior).
 - Un sitio Moodle con el servicio de la app móvil activado (la mayoría de universidades lo tienen, porque la app oficial de Moodle lo necesita).
-- Para ejecutarla desde el código fuente: Python 3.14.
+- Para ejecutarla desde el código fuente: Python 3.14 (en macOS, el instalador de python.org, que incluye Tk).
 
 ## Instalación (desde el código fuente)
 
@@ -41,9 +41,34 @@ python -m aulari
 
 Se publicará un ejecutable de Windows en las versiones del repositorio.
 
+### macOS
+
+Descarga `Aulari-<versión>-macos-arm64.dmg` de las [versiones](https://github.com/ALar89/aulari/releases), ábrelo y arrastra **Aulari** a **Aplicaciones**.
+
+La aplicación **no está firmada ni notarizada por Apple** (hace falta una cuenta de desarrollador de Apple, de pago), así que la primera vez macOS la bloquea con un mensaje que dice que Apple no ha podido verificarla. Para abrirla:
+
+1. Abre Aulari una vez y cierra el mensaje.
+2. Ve a **Ajustes del Sistema → Privacidad y seguridad**, baja hasta *Seguridad* y pulsa **Abrir igualmente** junto al mensaje sobre Aulari.
+3. Confirma con tu contraseña o Touch ID. macOS no volverá a preguntar para esta versión.
+
+Si quieres, comprueba antes la descarga: la versión incluye su SHA-256 (`shasum -a 256 -c Aulari-<versión>-macos-arm64.dmg.sha256`) y una atestación de procedencia (`gh attestation verify Aulari-<versión>-macos-arm64.dmg --repo ALar89/aulari`).
+
+Desde el código fuente, en Terminal:
+
+```bash
+git clone https://github.com/ALar89/aulari.git
+cd aulari
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install --require-hashes -r requirements.txt
+pip install --no-deps -e .
+python -m aulari
+```
+
 ## Cómo se usa
 
 1. **Inicia sesión**: pulsa *Abrir navegador*, entra en tu campus como siempre y acepta cuando el navegador pregunte si quieres abrir la aplicación. La ventana continúa sola.
+   En macOS el inicio de sesión automático aún no está disponible. En Google Chrome u otro navegador basado en Chromium, abre una pestaña nueva con las herramientas de desarrollo grabando (*Red* → *Conservar registro*), pulsa **Copiar dirección de inicio** en Aulari y pégala en esa pestaña. Después de iniciar sesión, copia la cabecera `Location` de la petición `launch.php` (estado 302, empieza por `moodlemobile://`) y pégala en la aplicación. La pantalla de inicio de sesión muestra estos pasos. También funciona si tu sesión del campus sigue abierta en el navegador, que redirige al instante y deja la pestaña en blanco.
 2. **Elige tus asignaturas** con las casillas y una **carpeta de destino**.
 3. Pulsa **Sincronizar**. El resumen muestra lo nuevo; el calendario se exporta a `<destino>/<curso académico>/calendari.ics`.
 
@@ -53,11 +78,11 @@ La interfaz está en catalán, castellano e inglés (selector en la parte inferi
 
 | Qué | Dónde |
 |---|---|
-| Token de sesión | Administrador de credenciales de Windows (mediante `keyring`), nunca en un archivo |
-| Configuración, registro de descargas, logs | `%LOCALAPPDATA%\aulari\` |
+| Token de sesión | Administrador de credenciales de Windows o Llavero de macOS (mediante `keyring`), nunca en un archivo |
+| Configuración, registro de descargas, logs | Windows: `%LOCALAPPDATA%\aulari\`. macOS: `~/Library/Application Support/aulari/` |
 | Material descargado | La carpeta de destino que elijas |
 
-Durante el inicio de sesión, la aplicación se registra, **solo para tu usuario de Windows**, como programa para los enlaces `moodlemobile://`, y quita ese registro en cuanto termina.
+En Windows, durante el inicio de sesión, la aplicación se registra, **solo para tu usuario de Windows**, como programa para los enlaces `moodlemobile://`, y quita ese registro en cuanto termina.
 
 ## Seguridad y privacidad
 
@@ -66,7 +91,7 @@ Durante el inicio de sesión, la aplicación se registra, **solo para tu usuario
 - Sin telemetría: no se envía nada a ningún sitio salvo a tu Moodle.
 - La aplicación nunca abre ni ejecuta los archivos que descarga.
 - Identificación honesta: las peticiones llevan el User-Agent `Aulari/<versión>`; la aplicación no se hace pasar por la app oficial de Moodle.
-- Límites que conviene conocer: el almacén de credenciales de Windows protege el token de copias en texto plano y de las copias de seguridad, pero no de un programa malicioso que se ejecute con tu propio usuario. En algunos sitios (e-aules incluido) los estudiantes no pueden revocar el token desde su perfil; caduca solo al cabo de un tiempo.
+- Límites que conviene conocer: el almacén de credenciales del sistema (Administrador de credenciales de Windows, Llavero de macOS) protege el token de copias en texto plano y de las copias de seguridad, pero no de un programa malicioso que se ejecute con tu propio usuario. En algunos sitios (e-aules incluido) los estudiantes no pueden revocar el token desde su perfil; caduca solo al cabo de un tiempo.
 
 ## Solo para uso personal
 
@@ -74,7 +99,8 @@ El material de las asignaturas pertenece a sus autores y es para los estudiantes
 
 ## Limitaciones
 
-- De momento solo Windows (macOS y Linux están previstos).
+- De momento, solo Windows y macOS (Apple Silicon); Linux está previsto.
+- En macOS aún no hay inicio de sesión ni sincronización automáticos, la aplicación no está notarizada, los archivos descargados no se marcan como procedentes de internet y los enlaces externos se guardan como accesos directos `.url` de Windows. Después de una actualización, macOS puede volver a preguntar si Aulari puede usar el Llavero.
 - No se descargan el texto HTML de las páginas ni los vídeos de plataformas externas.
 - Un solo equipo por carpeta de destino (otro equipo puede tomar el relevo).
 
@@ -85,6 +111,13 @@ pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 ruff format
 ruff check
+```
+
+En macOS los mismos comandos funcionan en Terminal (`source .venv/bin/activate` en lugar de `Activate.ps1`). Para compilar allí la aplicación y la imagen de disco:
+
+```bash
+pyinstaller --clean --noconfirm aulari.spec
+packaging/make_dmg.sh Aulari-prueba.dmg
 ```
 
 Las decisiones de diseño, lo verificado y los riesgos están en [`docs/design.md`](docs/design.md).

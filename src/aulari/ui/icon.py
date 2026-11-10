@@ -4,11 +4,17 @@ The icon lives in aulari/assets/aulari.ico, the same file PyInstaller puts on
 the executable. Its images are stored as PNG, so they are read straight from
 the .ico and handed to Tk with iconphoto(): one asset for everything.
 A missing or damaged icon is only logged; the app works without it.
+
+macOS is different: Tk turns only the first image of iconphoto() into the
+Dock icon of the whole app (tkMacOSXWm.c), and windows have no title-bar
+icon. Inside the app bundle nothing is set, so the Dock keeps the bundle's
+.icns (up to 1024 px); when run from source, only the largest image is given.
 """
 
 import base64
 import logging
 import struct
+import sys
 import tkinter as tk
 from importlib import resources
 
@@ -49,14 +55,34 @@ def load_icon_data() -> bytes:
     return result
 
 
+def images_for_system(images: list[tuple[int, bytes]]) -> list[tuple[int, bytes]]:
+    """Return the (size, PNG bytes) images to hand to Tk on this system.
+
+    On macOS Tk uses only the first image, so it gets just the largest one;
+    elsewhere Tk picks the right size from all of them.
+
+    Raises: ValueError if images is empty on macOS.
+    """
+    result = images
+    if sys.platform == "darwin":
+        result = [max(images)]  # tuples compare by size first
+    return result
+
+
 def set_window_icon(root: tk.Tk) -> None:
-    """Give this window, and the ones opened later, the Aulari icon."""
-    try:
-        images = [
-            tk.PhotoImage(master=root, data=base64.b64encode(png))
-            for _size, png in read_icon_images(load_icon_data())
-        ]
-        root.iconphoto(True, *images)
-        root.aulari_icon_images = images  # keep them alive as long as the window
-    except (OSError, ValueError, struct.error, tk.TclError) as error:
-        logger.warning("Could not set the window icon: %s", error)
+    """Give this window, and the ones opened later, the Aulari icon.
+
+    In the macOS app bundle nothing is set: the Dock keeps the bundle's .icns.
+    """
+    if sys.platform == "darwin" and getattr(sys, "frozen", False):
+        logger.debug("macOS app bundle: the Dock keeps the bundle icon")
+    else:
+        try:
+            images = [
+                tk.PhotoImage(master=root, data=base64.b64encode(png))
+                for _size, png in images_for_system(read_icon_images(load_icon_data()))
+            ]
+            root.iconphoto(True, *images)
+            root.aulari_icon_images = images  # keep them alive as long as the window
+        except (OSError, ValueError, struct.error, tk.TclError) as error:
+            logger.warning("Could not set the window icon: %s", error)
