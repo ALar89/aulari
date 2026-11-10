@@ -27,19 +27,17 @@ Aulari es una aplicación de escritorio para estudiantes. Descarga los archivos 
 - Un sitio Moodle con el servicio de la app móvil activado (la mayoría de universidades lo tienen, porque la app oficial de Moodle lo necesita).
 - Para ejecutarla desde el código fuente: Python 3.14 (en macOS, el instalador de python.org, que incluye Tk).
 
-## Instalación (desde el código fuente)
+## Instalación
 
-```powershell
-git clone https://github.com/ALar89/aulari.git
-cd aulari
-py -3.14 -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install -e .
-python -m aulari
-```
+### Windows
 
-Se publicará un ejecutable de Windows en las versiones del repositorio.
+Descarga `Aulari-<versión>-windows.zip` de las [versiones](https://github.com/ALar89/aulari/releases/latest), descomprímelo donde quieras y abre `Aulari.exe` dentro de la carpeta.
+
+El ejecutable todavía no está firmado, así que la primera vez Windows SmartScreen muestra *Windows protegió su PC*. Pulsa **Más información → Ejecutar de todas formas**; no vuelve a preguntar.
+
+Si quieres, comprueba antes la descarga: la versión incluye su SHA-256 (`Get-FileHash Aulari-<versión>-windows.zip`) y una atestación de procedencia (`gh attestation verify Aulari-<versión>-windows.zip --repo ALar89/aulari`).
+
+Para actualizar, descarga el zip nuevo y descomprímelo encima de la carpeta anterior. La configuración y la sesión se conservan, porque se guardan fuera de ella.
 
 ### macOS
 
@@ -53,7 +51,21 @@ La aplicación **no está firmada ni notarizada por Apple** (hace falta una cuen
 
 Si quieres, comprueba antes la descarga: la versión incluye su SHA-256 (`shasum -a 256 -c Aulari-<versión>-macos-arm64.dmg.sha256`) y una atestación de procedencia (`gh attestation verify Aulari-<versión>-macos-arm64.dmg --repo ALar89/aulari`).
 
-Desde el código fuente, en Terminal:
+### Desde el código fuente
+
+Windows, en PowerShell:
+
+```powershell
+git clone https://github.com/ALar89/aulari.git
+cd aulari
+py -3.14 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --require-hashes -r requirements.txt
+pip install --no-deps -e .
+python -m aulari
+```
+
+macOS, en Terminal:
 
 ```bash
 git clone https://github.com/ALar89/aulari.git

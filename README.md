@@ -27,19 +27,17 @@ Aulari is a desktop app for students. It downloads the files of your courses fro
 - A Moodle site with the mobile app service enabled (most universities have it, because the official Moodle app needs it).
 - To run from source: Python 3.14 (on macOS, the python.org installer, which includes Tk).
 
-## Installation (from source)
+## Installation
 
-```powershell
-git clone https://github.com/ALar89/aulari.git
-cd aulari
-py -3.14 -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install -e .
-python -m aulari
-```
+### Windows
 
-A packaged Windows executable will be published in the releases.
+Download `Aulari-<version>-windows.zip` from the [releases](https://github.com/ALar89/aulari/releases/latest), unzip it anywhere and open `Aulari.exe` inside the folder.
+
+The executable is not code-signed yet, so the first time Windows SmartScreen shows *Windows protected your PC*. Press **More info → Run anyway**; it does not ask again.
+
+Optionally, check the download first: the release includes its SHA-256 (`Get-FileHash Aulari-<version>-windows.zip`) and a build provenance attestation (`gh attestation verify Aulari-<version>-windows.zip --repo ALar89/aulari`).
+
+To update, download the new zip and unzip it over the old folder. Your settings and session are kept, because they are stored outside it.
 
 ### macOS
 
@@ -53,7 +51,21 @@ The app is **not signed or notarized by Apple** (that needs a paid Apple develop
 
 Optionally, check the download first: the release includes its SHA-256 (`shasum -a 256 -c Aulari-<version>-macos-arm64.dmg.sha256`) and a build provenance attestation (`gh attestation verify Aulari-<version>-macos-arm64.dmg --repo ALar89/aulari`).
 
-From source, in Terminal:
+### From source
+
+Windows, in PowerShell:
+
+```powershell
+git clone https://github.com/ALar89/aulari.git
+cd aulari
+py -3.14 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --require-hashes -r requirements.txt
+pip install --no-deps -e .
+python -m aulari
+```
+
+macOS, in Terminal:
 
 ```bash
 git clone https://github.com/ALar89/aulari.git
