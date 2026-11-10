@@ -14,6 +14,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | D4 | Alias de asignatura | **ACEPTADA (2026-11-06): conservar los conectores "i"/"y" en minúscula** (`CiOE`, `SDiLDH`). |
 | D6 | Curso académico de la carpeta (RF6) | **PARCIALMENTE ACEPTADA (2026-11-06):** en e-aules (UAB) se toma de la ruta de `wwwroot` (`2026-27`), porque cada curso es un sitio y `startdate` no es fiable (§10). **Pendiente:** estudiar cómo organizan los cursos otros Moodle antes de fijar la regla general (respaldo con `startdate`, o que el usuario confirme el curso al añadir el sitio). |
 | D7 | Sincronización automática | **ACEPTADA (2026-11-07):** tarea del Programador de tareas de Windows solo para el usuario (`Aulari.exe --background`), al iniciar sesión y cada 24 h por defecto (opciones: 12 h, 6 h; nunca menos de 6 h). Sin dependencias nuevas; aviso en una ventana pequeña propia solo si hay archivos o avisos nuevos, o si la sesión ha caducado. |
+| D8 | Versión para macOS | **ACEPTADA (2026-11-10, PR #4 de wilantr0):** solo Apple Silicon (arm64); `.app` en un `.dmg`, compilado en GitHub con atestación y publicado en la misma versión que el `.exe`; sin firmar ni notarizar (requiere una cuenta de pago de Apple); identificador `io.github.alar89.aulari`, que no se cambia nunca (macOS le asocia el acceso al Llavero). Datos en `~/Library/Application Support/aulari`. Login manual con el botón «Copiar dirección de inicio» mientras no haya login automático. |
 | D5 | Nombre del proyecto | "Moodle" es marca registrada. **Revisado el 2026-11-06:** la política de marcas de Moodle (moodle.com/trademarks) dice que no se puede usar "Moodle" en el nombre del software, sin distinguir "… for Moodle"; solo se permite describir la integración ("works with Moodle™"). Recomendado: nombre propio sin "Moodle" y la integración en la descripción; nunca el logotipo de Moodle ni de la UAB. **ACEPTADA (2026-11-06): «Aulari»** (libre en PyPI; en GitHub solo repositorios vacíos con nombres parecidos). Descripción: «Funciona con Moodle™». |
 
 ## 2. Resumen
@@ -114,7 +115,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 
 ## 9. Requisitos no funcionales
 
-- **Plataformas:** Windows en la v1; después macOS (`.webloc` en lugar de `.url`) y Linux.
+- **Plataformas:** Windows; macOS (Apple Silicon) desde la 0.4.0 (D8), todavía con enlaces `.url` en lugar de `.webloc`; Linux, más adelante.
 - **Idiomas:** interfaz en catalán, castellano e inglés (`strings/ca.json`, `es.json`, `en.json`); por defecto sigue el idioma de Windows y se puede cambiar desde la ventana (hecho el 2026-11-07).
 - **Sin IA en el núcleo.**
 - **Robustez:** un fallo en un archivo o curso no detiene la sincronización.
@@ -239,6 +240,17 @@ Todas las funciones responden a un estudiante en e-aules:
 - Logo (`packaging/aulari-logo-1024.png`) e icono `.ico` de 16 a 256 px, generado con `packaging/make_icon.py` (solo biblioteca estándar): en el ejecutable, las ventanas, el aviso de la sincronización automática y los README.
 - Publicada el 2026-11-07: `Aulari-v0.3.1-windows.zip` (18 MB, `10daa504…15d9d3`) con atestación de procedencia comprobada en la API de GitHub.
 
+### macOS (verificado por wilantr0 el 2026-11-07 y 2026-11-08, PR #4)
+
+- MacBook Air M4, macOS 27.3, Python 3.14.5 de python.org y Tcl/Tk 9.0.3. Suite completa en verde (5 pruebas solo de Windows se saltan); en el CI de la PR pasaron `test` y `test-macos`.
+- Dos pruebas de `test_login_handoff` fallaban en macOS por una carrera del propio test: la conexión local recién cerrada tarda un instante en verse lista con `select(…, 0)`. Se arregló en el test (`poll_with_retries()`), sin cambiar la app.
+- Las partes de Windows no rompen la app: el login automático cae al manual y la sincronización automática (`schtasks`) da un error controlado.
+- Login manual en e-aules con Chrome: funciona. Con Safari no (el inspector no conserva el registro).
+- **Problema encontrado:** con la sesión de la UAB ya abierta en el navegador, `launch.php` redirige al instante a `moodlemobile://`, la pestaña queda en `about:blank` y el inspector, abierto después, llega tarde. Solución: el botón «Copiar dirección de inicio», para pegar la URL en una pestaña que ya tiene el inspector grabando. Verificado en Arc.
+- `Aulari.app`: arm64, 35 MB, firma ad-hoc válida; `.dmg` de 17 MB. Con el atributo de cuarentena, Gatekeeper la rechaza, como se espera de una app sin notarizar (el README explica cómo abrirla).
+- `THIRD_PARTY_LICENSES` sirve también para la `.app`: los textos de Python y Tcl/Tk del Python de Mac son idénticos.
+- **Pendiente en macOS:** login automático, sincronización automática con launchd, equivalente a Mark-of-the-Web (§5: atributo de cuarentena en las descargas), enlaces `.webloc`, textos de error que todavía nombran Windows y ocultar la casilla de sincronización automática.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
@@ -268,4 +280,4 @@ Todas las funciones responden a un estudiante en e-aules:
 
 ## 14. Fuera de alcance v1
 
-El HTML de las páginas (sí sus archivos incrustados) y vídeos, macOS y Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
+El HTML de las páginas (sí sus archivos incrustados) y vídeos, Linux, varios equipos sincronizando a la vez, servicio web con credenciales ajenas, clasificación con IA, ejecución en Raspberry Pi.
