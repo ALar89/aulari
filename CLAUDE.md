@@ -85,7 +85,7 @@ def read_config(path: Path) -> dict:
 ## 5. Entorno y comandos (Windows, PowerShell)
 
 - Python 3.14. Entorno: `py -3.14 -m venv .venv`, `.venv\Scripts\Activate.ps1`, `pip install -r requirements-dev.txt` y `pip install -e .` (paquete editable: `aulari` se importa sin tocar `sys.path`).
-- Dependencias declaradas en `requirements.in` y `requirements-dev.in`, y fijadas con hashes en `requirements.txt` y `requirements-dev.txt` (`pip-compile --generate-hashes --strip-extras --allow-unsafe`). Aprobadas: `requests`, `keyring`, `tzdata` (zonas horarias en Windows), `ruff`, `pyinstaller` y `pip-tools` (solo para compilar, aprobados el 2026-11-07), y `setuptools` solo como backend de compilación (fijado en `pyproject.toml`). **Cualquier otra se pide antes de instalarla.**
+- Dependencias declaradas en `requirements.in` y `requirements-dev.in`, y fijadas con hashes en `requirements.txt` y `requirements-dev.txt` (`pip-compile --generate-hashes --strip-extras --allow-unsafe`). Aprobadas: `requests`, `keyring`, `tzdata` (zonas horarias en Windows), `ruff`, `pyinstaller` y `pip-tools` (solo para compilar, aprobados el 2026-11-07), `macholib` (solo para compilar en macOS, la pide PyInstaller; aprobado el 2026-11-10), y `setuptools` solo como backend de compilación (fijado en `pyproject.toml`). **Cualquier otra se pide antes de instalarla.**
 - Tests: `python -m unittest discover -s tests -v`, antes de cada commit.
 - Formato y lint: `ruff format` y `ruff check`. En `pyproject.toml` se desactivan las reglas que contradicen el estilo: `RET501`–`RET505`, `SIM110`, `SIM111`, `PLR1714` y `C4`.
 - Comandos de PowerShell: rutas con `\`, `Remove-Item` en lugar de `rm -rf`.
