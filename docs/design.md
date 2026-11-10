@@ -251,6 +251,11 @@ Todas las funciones responden a un estudiante en e-aules:
 - `THIRD_PARTY_LICENSES` sirve también para la `.app`: los textos de Python y Tcl/Tk del Python de Mac son idénticos.
 - **Pendiente en macOS:** login automático, sincronización automática con launchd, equivalente a Mark-of-the-Web (§5: atributo de cuarentena en las descargas), enlaces `.webloc`, textos de error que todavía nombran Windows y ocultar la casilla de sincronización automática.
 
+### Versión 0.4.0 (2026-11-10)
+
+- Primera versión para macOS (D8, PR #4). Los dos trabajos del flujo Release en verde: `build` (Windows) y `build-macos`, que añade el `.dmg` a la versión creada por el primero.
+- Publicada el 2026-11-10: `Aulari-v0.4.0-windows.zip` (18 MB, `38219c32…06a1d3`) y `Aulari-v0.4.0-macos-arm64.dmg` (18 MB, `e4711821…bfc5fcb`), cada uno con su `.sha256` y su atestación de procedencia, comprobadas en la API de GitHub.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
