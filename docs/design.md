@@ -279,6 +279,7 @@ Todas las funciones responden a un estudiante en e-aules:
 
 - RF20 (nombre de la carpeta de cada curso académico y subcarpeta del campus) y RF21 (espacios en los nombres). Probado por el usuario el 2026-11-10 con su propia estructura de carpetas (carpeta de curso renombrada, subcarpeta `Campus`, guion bajo): funciona.
 - El registro pasa al esquema 4 (nombres originales); se migra solo al abrirlo.
+- Publicada el 2026-11-10: `Aulari-v0.5.0-windows.zip` (18 MB, `d34191b5…4243c65fe`) y `Aulari-v0.5.0-macos-arm64.dmg` (19 MB, `6beb38c9…6094e89e`), cada uno con su `.sha256` y su atestación de procedencia, comprobadas en la API de GitHub.
 
 ## 11. Legal y distribución
 
