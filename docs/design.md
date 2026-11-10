@@ -275,6 +275,11 @@ Todas las funciones responden a un estudiante en e-aules:
 - Primera versión para macOS (D8, PR #4). Los dos trabajos del flujo Release en verde: `build` (Windows) y `build-macos`, que añade el `.dmg` a la versión creada por el primero.
 - Publicada el 2026-11-10: `Aulari-v0.4.0-windows.zip` (18 MB, `38219c32…06a1d3`) y `Aulari-v0.4.0-macos-arm64.dmg` (18 MB, `e4711821…bfc5fcb`), cada uno con su `.sha256` y su atestación de procedencia, comprobadas en la API de GitHub.
 
+### Versión 0.5.0 (2026-11-10)
+
+- RF20 (nombre de la carpeta de cada curso académico y subcarpeta del campus) y RF21 (espacios en los nombres). Probado por el usuario el 2026-11-10 con su propia estructura de carpetas (carpeta de curso renombrada, subcarpeta `Campus`, guion bajo): funciona.
+- El registro pasa al esquema 4 (nombres originales); se migra solo al abrirlo.
+
 ## 11. Legal y distribución
 
 - **Normativa TIC de la UAB** (https://uab.cat/doc/TR_normativa_TIC): cuentas personales e intransferibles (art. 46.4), no dejar el acceso desprotegido (art. 47.1.b), no saltarse restricciones (art. 47.1.d), material solo para matriculados (art. 38). Consecuencias: nunca modo multiusuario ni credenciales ajenas, el token no se exporta y nunca se falsea el User-Agent.
