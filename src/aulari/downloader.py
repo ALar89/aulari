@@ -93,26 +93,30 @@ def _existing_names(folder: Path) -> set[str]:
     return result
 
 
-def free_unique_path(path: Path) -> Path:
-    """Return path, or 'name (2).ext', 'name (3).ext'... if it is taken."""
-    name = organizer.unique_name(path.name, _existing_names(path.parent))
-    result = path.with_name(name)
+def free_unique_name(folder: Path, name: str, style: str = "") -> str:
+    """Return name, or 'name (2).ext', 'name (3).ext'... if it is taken in folder.
+
+    name is the original form (with spaces); the check uses its styled form,
+    which is the one on disk (RF21).
+    """
+    result = organizer.unique_name(name, _existing_names(folder), style=style)
     return result
 
 
-def free_versioned_path(path: Path, timemodified: int) -> Path:
+def free_versioned_name(folder: Path, name: str, timemodified: int, style: str = "") -> str:
     """Return a free name for a new version: 'Name (YYYY-MM-DD).ext' (RF7).
 
     If that is taken, 'Name (YYYY-MM-DD HHMM).ext', and then ' (2)', ' (3)'...
-    Dates use Europe/Madrid time.
+    Dates use Europe/Madrid time. As in free_unique_name(), the original form
+    is returned and the styled form is checked against the disk.
     """
     moment = organizer.to_local_time(timemodified)
-    existing = _existing_names(path.parent)
-    folded = {name.casefold() for name in existing}
-    name = organizer.versioned_filename(path.name, moment)
-    if name.casefold() in folded:
-        name = organizer.versioned_filename(path.name, moment, include_time=True)
-    result = path.with_name(organizer.unique_name(name, existing))
+    existing = _existing_names(folder)
+    folded = {item.casefold() for item in existing}
+    result = organizer.versioned_filename(name, moment)
+    if organizer.apply_space_style(result, style).casefold() in folded:
+        result = organizer.versioned_filename(name, moment, include_time=True)
+    result = organizer.unique_name(result, existing, style=style)
     return result
 
 

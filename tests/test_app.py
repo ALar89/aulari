@@ -52,6 +52,9 @@ class FakeClient:
     """Fake MoodleClient for every function CampusApp uses."""
 
     enrolled = list(COURSES)
+    filename = "guia.pdf"
+    timemodified = 1790000000
+    content = b"hello"
     discussions = []  # announcements in the news forum of course 1072
 
     def __init__(self, site_url: str, token: str) -> None:
@@ -85,10 +88,10 @@ class FakeClient:
                             "contents": [
                                 {
                                     "type": "file",
-                                    "filename": "guia.pdf",
+                                    "filename": FakeClient.filename,
                                     "filepath": "/",
                                     "filesize": 5,
-                                    "timemodified": 1790000000,
+                                    "timemodified": FakeClient.timemodified,
                                     "fileurl": FILE_URL,
                                 }
                             ],
@@ -137,8 +140,8 @@ class FakeClient:
 
     def download(self, url: str, destination: Path) -> tuple[int, str]:
         """Write five bytes."""
-        destination.write_bytes(b"hello")
-        return 5, hashlib.sha256(b"hello").hexdigest()
+        destination.write_bytes(FakeClient.content)
+        return len(FakeClient.content), hashlib.sha256(FakeClient.content).hexdigest()
 
 
 def redirect_for(passport: str) -> str:
@@ -158,6 +161,9 @@ class AppTestCase(unittest.TestCase):
         self.previous_keyring = keyring.get_keyring()
         keyring.set_keyring(MemoryKeyring())
         FakeClient.enrolled = list(COURSES)
+        FakeClient.filename = "guia.pdf"
+        FakeClient.timemodified = 1790000000
+        FakeClient.content = b"hello"
         self.app = CampusApp(root / "app", client_factory=FakeClient)
         self.app.set_site_url(SITE)
         self.destination = root / "Campus"
@@ -485,6 +491,89 @@ class SubfolderTests(AppTestCase):
         self.assertTrue((self.course_dir / "00 - General" / "guia.pdf").exists())
         self.assertFalse((self.course_dir / "Campus").exists())
         self.assertEqual(self.app.settings.campus_subfolder, "")
+
+
+class SpaceStyleTests(AppTestCase):
+    """set_space_style(): names without spaces, also for what was downloaded (RF21)."""
+
+    def setUp(self) -> None:
+        """Log in, select one course with a file name that has spaces and an underscore."""
+        super().setUp()
+        FakeClient.filename = "P1_enunciat v2.pdf"
+        self.log_in()
+        self.app.list_courses()
+        self.app.set_selection([1072])
+        self.app.set_destination(self.destination)
+        self.course_dir = self.destination / "2026-27" / "SO"
+
+    def sync(self) -> tuple[int, int]:
+        """Sync and return (new files, files missing locally)."""
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        return summary.new, summary.missing_locally
+
+    def test_chosen_before_the_first_sync(self) -> None:
+        """New sections and files get the style; names the user typed keep their spaces."""
+        self.app.rename_year_folder("2n Curs")
+        self.app.set_campus_subfolder("Material campus")
+        self.app.set_space_style("_")
+        self.sync()
+        course = self.destination / "2n Curs" / "SO" / "Material campus"
+        self.assertTrue((course / "00_General" / "P1_enunciat_v2.pdf").exists())
+        self.assertEqual(CampusApp(self.app.app_dir).settings.space_style, "_")
+
+    def test_changed_after_sync_and_back(self) -> None:
+        """Everything Aulari wrote is renamed from the original names, losslessly."""
+        self.sync()
+        (self.course_dir / "Apunts de classe").mkdir()
+        self.app.set_space_style("-")
+        self.assertTrue((self.course_dir / "00-General" / "P1_enunciat-v2.pdf").exists())
+        self.assertFalse((self.course_dir / "00 - General").exists())
+        self.assertTrue((self.course_dir / "Apunts de classe").is_dir())
+        self.assertEqual(self.sync(), (0, 0))
+        self.app.set_space_style("_")
+        self.assertTrue((self.course_dir / "00_General" / "P1_enunciat_v2.pdf").exists())
+        self.app.set_space_style("")
+        self.assertTrue((self.course_dir / "00 - General" / "P1_enunciat v2.pdf").exists())
+        self.assertEqual(self.sync(), (0, 0))
+
+    def test_new_version_keeps_the_style(self) -> None:
+        """A new version gets a styled name next to the renamed previous one (RF7)."""
+        self.sync()
+        self.app.set_space_style("_")
+        FakeClient.timemodified = 1790100000
+        FakeClient.content = b"HELLO"
+        summary = self.app.run_sync(self.app.list_courses()).summary
+        self.assertEqual(summary.new_versions, 1)
+        styled = sorted(path.name for path in (self.course_dir / "00_General").iterdir())
+        self.assertEqual(styled, ["P1_enunciat_v2.pdf", "P1_enunciat_v2_(2026-09-22).pdf"])
+        self.app.set_space_style("")
+        plain = sorted(path.name for path in (self.course_dir / "00 - General").iterdir())
+        self.assertEqual(plain, ["P1_enunciat v2 (2026-09-22).pdf", "P1_enunciat v2.pdf"])
+
+    def test_taken_name_changes_nothing(self) -> None:
+        """If a styled name already exists, nothing is renamed and the style stays."""
+        self.sync()
+        (self.course_dir / "00_General").mkdir()
+        with self.assertRaises(AppError) as context:
+            self.app.set_space_style("_")
+        self.assertEqual(context.exception.key, "error_names_taken")
+        self.assertTrue((self.course_dir / "00 - General" / "P1_enunciat v2.pdf").exists())
+        self.assertEqual(self.app.settings.space_style, "")
+        self.assertEqual(self.sync(), (0, 0))
+
+    def test_rollback_of_a_partial_rename(self) -> None:
+        """A clash found halfway (file level) moves the renamed folders back."""
+        self.sync()
+        (self.course_dir / "00 - General" / "P1_enunciat_v2.pdf").write_bytes(b"mine")
+        with self.assertRaises(AppError):
+            self.app.set_space_style("_")
+        self.assertTrue((self.course_dir / "00 - General" / "P1_enunciat v2.pdf").exists())
+        self.assertFalse((self.course_dir / "00_General").exists())
+
+    def test_unknown_style(self) -> None:
+        """Only '', '_' and '-' are accepted."""
+        with self.assertRaises(ValueError):
+            self.app.set_space_style(".")
 
 
 def discussion(discussion_id: int, subject: str, when: int) -> dict:

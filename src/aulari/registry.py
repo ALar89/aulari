@@ -18,7 +18,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
-SCHEMA_VERSION = 3
+from aulari.organizer import apply_space_style
+
+SCHEMA_VERSION = 4
 STATE_PRESENT = "present"
 STATE_MISSING = "missing"
 STATE_REMOVED = "removed_in_moodle"
@@ -93,6 +95,18 @@ CREATE TABLE seen_discussions (
     site_id       INTEGER NOT NULL REFERENCES sites (id),
     discussion_id INTEGER NOT NULL,
     PRIMARY KEY (site_id, discussion_id)
+);
+""",
+    # RF21: the original names (with spaces), from which the names on disk are
+    # built with the chosen space style. Older rows were created with spaces.
+    4: """
+ALTER TABLE sections ADD COLUMN plain_name TEXT NOT NULL DEFAULT '';
+UPDATE sections SET plain_name = folder_name;
+ALTER TABLE file_versions ADD COLUMN plain_path TEXT NOT NULL DEFAULT '';
+UPDATE file_versions SET plain_path = (
+    SELECT substr(file_versions.relative_path, length(c.folder) + 2)
+    FROM files AS f JOIN courses AS c ON c.site_id = f.site_id AND c.course_id = f.course_id
+    WHERE f.id = file_versions.file_id
 );
 """,
 }
@@ -304,25 +318,74 @@ class Registry:
             for site_id, course_id, new_folder in changes:
                 self._set_course_folder(site_id, course_id, new_folder)
 
-    def section_folder(self, site_id: int, course_id: int, section_id: int, proposed: str) -> str:
-        """Return the stored folder of a section, or store and return proposed.
+    def section_folder(
+        self, site_id: int, course_id: int, section_id: int, proposed: str, style: str = ""
+    ) -> str:
+        """Return the original name of a section folder, storing proposed if it is new.
 
         Once created, a section folder never changes, even if the teacher
-        renames or reorders sections (design.md section 6).
+        renames or reorders sections (design.md section 6). The name on disk
+        is the original one with the space style applied (RF21).
         """
         with self._conn:
             self._conn.execute(
-                "INSERT INTO sections (site_id, course_id, section_id, folder_name) "
-                "VALUES (?, ?, ?, ?) ON CONFLICT (site_id, course_id, section_id) DO NOTHING",
-                (site_id, course_id, section_id, proposed),
+                "INSERT INTO sections (site_id, course_id, section_id, folder_name, plain_name) "
+                "VALUES (?, ?, ?, ?, ?) ON CONFLICT (site_id, course_id, section_id) DO NOTHING",
+                (site_id, course_id, section_id, apply_space_style(proposed, style), proposed),
             )
         row = self._conn.execute(
-            "SELECT folder_name FROM sections WHERE site_id = ? AND course_id = ? "
+            "SELECT plain_name FROM sections WHERE site_id = ? AND course_id = ? "
             "AND section_id = ?",
             (site_id, course_id, section_id),
         ).fetchone()
-        result = row["folder_name"]
+        result = row["plain_name"]
         return result
+
+    # --- space style of the names (RF21) ------------------------------------
+
+    def all_sections(self) -> list[dict]:
+        """Return every section with its course folder, folder name and original name."""
+        rows = self._conn.execute(
+            "SELECT s.site_id, s.course_id, s.section_id, s.folder_name, s.plain_name, "
+            "c.folder FROM sections AS s JOIN courses AS c "
+            "ON c.site_id = s.site_id AND c.course_id = s.course_id"
+        ).fetchall()
+        result = [dict(row) for row in rows]
+        return result
+
+    def all_versions(self) -> list[dict]:
+        """Return every file version with its course folder, path and original path."""
+        rows = self._conn.execute(
+            "SELECT v.file_id, v.version, v.relative_path, v.plain_path, c.folder "
+            "FROM file_versions AS v JOIN files AS f ON f.id = v.file_id "
+            "JOIN courses AS c ON c.site_id = f.site_id AND c.course_id = f.course_id"
+        ).fetchall()
+        result = [dict(row) for row in rows]
+        return result
+
+    def rename_paths(self, sections: list[dict], versions: list[dict]) -> None:
+        """Store new section folder names and file paths, in one transaction (RF21).
+
+        sections hold site_id, course_id, section_id and folder_name;
+        versions hold file_id, version and relative_path.
+        """
+        with self._conn:
+            for section in sections:
+                self._conn.execute(
+                    "UPDATE sections SET folder_name = ? "
+                    "WHERE site_id = ? AND course_id = ? AND section_id = ?",
+                    (
+                        section["folder_name"],
+                        section["site_id"],
+                        section["course_id"],
+                        section["section_id"],
+                    ),
+                )
+            for version in versions:
+                self._conn.execute(
+                    "UPDATE file_versions SET relative_path = ? WHERE file_id = ? AND version = ?",
+                    (version["relative_path"], version["file_id"], version["version"]),
+                )
 
     # --- files and versions ----------------------------------------------
 
@@ -368,7 +431,8 @@ class Registry:
     ) -> bool:
         """Store a finished download; return True if it created a new version.
 
-        version holds relative_path, timemodified, filesize and sha256. If the
+        version holds relative_path, plain_path (the original form of the path
+        inside the course folder, RF21), timemodified, filesize and sha256. If the
         SHA-256 equals the latest version, no version is added: only its
         date and size are updated (design.md section 6).
         """
@@ -404,7 +468,7 @@ class Registry:
                 number = 1 if latest is None else latest["version"] + 1
                 self._conn.execute(
                     "INSERT INTO file_versions (file_id, version, relative_path, timemodified, "
-                    "filesize, sha256, downloaded_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "filesize, sha256, downloaded_at, plain_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         file_id,
                         number,
@@ -413,6 +477,7 @@ class Registry:
                         version["filesize"],
                         version["sha256"],
                         now,
+                        version["plain_path"],
                     ),
                 )
                 created = True

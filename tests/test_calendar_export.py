@@ -213,6 +213,8 @@ class MigrationTests(unittest.TestCase):
                 conn.execute("DROP TABLE calendar_events")
                 conn.execute("DROP TABLE checked_forums")
                 conn.execute("DROP TABLE seen_discussions")
+                conn.execute("ALTER TABLE sections DROP COLUMN plain_name")
+                conn.execute("ALTER TABLE file_versions DROP COLUMN plain_path")
                 conn.execute("PRAGMA user_version = 1")
             conn.close()
             with Registry(path) as registry:
@@ -223,7 +225,7 @@ class MigrationTests(unittest.TestCase):
             conn = sqlite3.connect(path)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             conn.close()
-            self.assertEqual(version, 3)
+            self.assertEqual(version, 4)
 
 
 if __name__ == "__main__":

@@ -49,6 +49,11 @@ _ROMAN_NUMERALS = {
 }  # fmt: skip
 _SITE_YEAR = re.compile(r"/(\d{4})-(\d{2})(?:/|$)")
 
+# Space styles for the names Aulari creates (RF21): '' keeps the spaces.
+SPACE_STYLES = ("", "_", "-")
+_SPACED_DASH = re.compile(r"\s+[-–]\s+")
+_SPACES = re.compile(r"\s+")
+
 
 def _strip_accents(text: str) -> str:
     """Return text without diacritics ('Càlcul' -> 'Calcul')."""
@@ -114,11 +119,34 @@ def ensure_inside(destination: Path, candidate: Path) -> Path:
     return result
 
 
-def unique_name(name: str, existing: set[str], keep_extension: bool = True) -> str:
+def apply_space_style(name: str, style: str) -> str:
+    """Return name with its spaces replaced by style ('_' or '-'); '' keeps them (RF21).
+
+    ' - ' becomes a single separator ('01 - Tema 1' -> '01_Tema_1') and
+    repeated separators are joined into one.
+    """
+    result = name
+    if style:
+        result = _SPACED_DASH.sub(style, result)
+        result = _SPACES.sub(style, result)
+        result = re.sub(re.escape(style) + "{2,}", style, result)
+    return result
+
+
+def styled_path(plain_path: str, style: str) -> str:
+    """Apply the space style to every part of a '/' separated relative path (RF21)."""
+    parts = [apply_space_style(part, style) for part in plain_path.split("/")]
+    result = "/".join(parts)
+    return result
+
+
+def unique_name(name: str, existing: set[str], keep_extension: bool = True, style: str = "") -> str:
     """Return name, or 'name (2)', 'name (3)'... if it collides with existing.
 
     Comparison ignores case, as Windows does. Use keep_extension=False for
-    folders, so that 'Tema 1. Intro' is not split at the dot.
+    folders, so that 'Tema 1. Intro' is not split at the dot. With a space
+    style, name is the original name and existing holds names on disk: the
+    check is done on the styled name, but the original form is returned.
     """
     folded = {item.casefold() for item in existing}
     stem, suffix = (name, "")
@@ -126,7 +154,7 @@ def unique_name(name: str, existing: set[str], keep_extension: bool = True) -> s
         stem, suffix = _split_extension(name)
     result = name
     counter = 2
-    while result.casefold() in folded:
+    while apply_space_style(result, style).casefold() in folded:
         result = f"{stem} ({counter}){suffix}"
         counter = counter + 1
     return result

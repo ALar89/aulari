@@ -28,6 +28,7 @@ def version(path: str, timemodified: int = 1000, filesize: int = 50, sha256: str
         "timemodified": timemodified,
         "filesize": filesize,
         "sha256": sha256,
+        "plain_path": "/".join(path.split("/")[2:]),
     }
 
 
@@ -211,6 +212,28 @@ class RenameTests(RegistryTestCase):
         """Renaming a course that is not registered raises KeyError."""
         with self.assertRaises(KeyError):
             self.registry.rename_course_folder(self.site, 999, "X", "2026-27/X")
+
+
+class OriginalNamesMigrationTests(RegistryTestCase):
+    """Schema 4 (RF21): older rows get their original names from the stored ones."""
+
+    def test_version_3_database_is_migrated(self) -> None:
+        """Section and file names created with spaces become their original names."""
+        self.registry.section_folder(self.site, COURSE, 900, "03 - Tema 3")
+        self.registry.record_download(
+            self.site, COURSE, KEY, version("2026-27/SO/03 - Tema 3/Tema 1.pdf")
+        )
+        self.registry.close()
+        conn = sqlite3.connect(self.db_path)
+        with conn:
+            conn.execute("ALTER TABLE sections DROP COLUMN plain_name")
+            conn.execute("ALTER TABLE file_versions DROP COLUMN plain_path")
+            conn.execute("PRAGMA user_version = 3")
+        conn.close()
+        self.registry = Registry(self.db_path)
+        self.assertEqual(self.registry.section_folder(self.site, COURSE, 900, "x"), "03 - Tema 3")
+        latest = self.registry.latest_version(self.site, KEY)
+        self.assertEqual(latest["plain_path"], "03 - Tema 3/Tema 1.pdf")
 
 
 class FolderTests(RegistryTestCase):

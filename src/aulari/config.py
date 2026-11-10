@@ -39,6 +39,7 @@ class Settings:
     auto_sync_hours: int = 0  # 0 = automatic sync off (D7)
     year_folder: str = ""  # folder of the active academic year; '' = '2026-27' (RF20)
     campus_subfolder: str = ""  # folder for the campus material in each course; '' = none
+    space_style: str = ""  # '' keeps spaces in the names Aulari creates; '_' or '-' (RF21)
     # Other academic year sites (RF19): dicts with site_url, user_id,
     # selected_courses, known_courses and year_folder. The active site uses
     # the fields above.
@@ -97,6 +98,8 @@ def settings_from_dict(data: dict) -> Settings:
         result.auto_sync_hours = data["auto_sync_hours"]
     result.year_folder = _text(data.get("year_folder"))
     result.campus_subfolder = _text(data.get("campus_subfolder"))
+    if data.get("space_style") in organizer.SPACE_STYLES:
+        result.space_style = data["space_style"]
     if isinstance(data.get("other_sites"), list):
         sites = [site_from_dict(item) for item in data["other_sites"]]
         result.other_sites = [site for site in sites if site is not None]

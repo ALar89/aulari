@@ -135,6 +135,52 @@ class SubfolderPlan:
             self.moves.append((f"{old_folder}/{section}", f"{new_folder}/{section}"))
 
 
+@dataclass
+class StylePlan:
+    """What changes on disk and in the registry when the space style changes (RF21)."""
+
+    moves: list[tuple[int, str, str]] = field(default_factory=list)  # depth, old, new
+    sections: list[dict] = field(default_factory=list)
+    versions: list[dict] = field(default_factory=list)
+
+    def ordered_moves(self) -> list[tuple[str, str]]:
+        """Return the (old, new) moves without repeats, outer folders first."""
+        result = [(old, new) for _depth, old, new in sorted(set(self.moves))]
+        return result
+
+
+def plan_section_styles(plan: StylePlan, sections: list[dict], style: str) -> None:
+    """Add to plan the section folders whose name changes with style."""
+    for section in sections:
+        new_name = organizer.apply_space_style(section["plain_name"], style)
+        if new_name != section["folder_name"]:
+            folder = section["folder"]
+            plan.moves.append((1, f"{folder}/{section['folder_name']}", f"{folder}/{new_name}"))
+            plan.sections.append({**section, "folder_name": new_name})
+
+
+def plan_version_styles(plan: StylePlan, versions: list[dict], style: str) -> None:
+    """Add to plan the files (and their folders) whose path changes with style.
+
+    Each folder is renamed inside its already renamed parent, so the moves
+    of depth k start from the new names of the first k - 1 parts. A path
+    that does not follow its original form (it should not happen) is left alone.
+    """
+    for row in versions:
+        folder = row["folder"]
+        prefix = folder + "/"
+        old_parts = row["relative_path"][len(prefix) :].split("/")
+        new_parts = organizer.styled_path(row["plain_path"], style).split("/")
+        consistent = row["relative_path"].startswith(prefix) and len(old_parts) == len(new_parts)
+        if consistent and old_parts != new_parts:
+            for depth in range(1, len(new_parts) + 1):
+                if old_parts[depth - 1] != new_parts[depth - 1]:
+                    old = "/".join([*new_parts[: depth - 1], old_parts[depth - 1]])
+                    new = "/".join(new_parts[:depth])
+                    plan.moves.append((depth, f"{prefix}{old}", f"{prefix}{new}"))
+            plan.versions.append({**row, "relative_path": prefix + "/".join(new_parts)})
+
+
 def clean_folder_name(name: str) -> str:
     """Return a sanitized folder name typed by the user, or '' for a blank one.
 
@@ -156,16 +202,23 @@ def site_year_dir(site: dict) -> str:
 
 
 def move_and_update(pending: list[tuple[Path, Path]], update: Callable[[], None]) -> None:
-    """Rename each (old, new) folder, then call update; undo the moves if anything fails.
+    """Rename each (old, new) path, then call update; undo the moves if anything fails.
 
-    Raises: OSError; sqlite3.Error; KeyError.
+    An old path that does not exist (yet or any more) is skipped. Nothing is
+    ever overwritten: a new path that already exists stops everything.
+
+    Raises: FileExistsError if a new path is taken; OSError; sqlite3.Error; KeyError.
     """
     done = []
     try:
         for old_path, new_path in pending:
-            new_path.parent.mkdir(parents=True, exist_ok=True)
-            old_path.rename(new_path)
-            done.append((old_path, new_path))
+            if old_path.exists():
+                # A case-only change ('SO' -> 'So') is the same folder on Windows.
+                if new_path.exists() and not old_path.samefile(new_path):
+                    raise FileExistsError(f"Already exists: {new_path.name}")
+                new_path.parent.mkdir(parents=True, exist_ok=True)
+                old_path.rename(new_path)
+                done.append((old_path, new_path))
         update()
     except OSError, sqlite3.Error, KeyError:
         for old_path, new_path in reversed(done):
@@ -589,12 +642,13 @@ class CampusApp:
     ) -> None:
         """Move folders inside the destination, then update the registry (RF4, RF20).
 
-        moves holds (old, new) paths relative to the destination; an old folder
-        that does not exist is skipped. Everything runs under the sync lock. If
-        a move or the update fails, the folders already moved are moved back.
-        Without a destination only the registry is updated.
+        moves holds (old, new) paths relative to the destination, in order; an
+        old path that does not exist when its turn comes is skipped, so a move
+        can depend on an earlier one (RF21). Everything runs under the sync
+        lock. If a move or the update fails, what was already moved is moved
+        back. Without a destination only the registry is updated.
 
-        Raises: AppError(taken_key) if a new folder already exists; ValueError
+        Raises: AppError(taken_key) if a new path already exists; ValueError
         if a path escapes the destination; SyncLockedError; OSError;
         sqlite3.Error; KeyError.
         """
@@ -619,7 +673,10 @@ class CampusApp:
                     # A case-only change ('SO' -> 'So') is the same folder on Windows.
                     if new_path.exists() and not old_path.samefile(new_path):
                         raise AppError(taken_key)
-                move_and_update(pending, update)
+                try:
+                    move_and_update(pairs, update)
+                except FileExistsError as error:
+                    raise AppError(taken_key) from error
 
     # --- academic year folder and campus subfolder (RF20) --------------
 
@@ -677,6 +734,30 @@ class CampusApp:
             self._remove_empty_folders(plan.old_folders)
         return name
 
+    def set_space_style(self, style: str) -> None:
+        """Use spaces, '_' or '-' in the names Aulari creates, also the existing ones (RF21).
+
+        Every section folder, subfolder and file Aulari downloaded is renamed
+        from its original name, so changing back and forth loses nothing
+        ('P1_enunciat.pdf' from Moodle keeps its '_'). Names the user typed
+        (academic year folder, aliases, campus subfolder) are not touched.
+
+        Raises: ValueError for an unknown style; AppError('error_names_taken')
+        if a new name is already taken (nothing is changed); SyncLockedError;
+        OSError; sqlite3.Error.
+        """
+        if style not in organizer.SPACE_STYLES:
+            raise ValueError(f"Unknown space style: {style!r}")
+        if style != self.settings.space_style:
+            plan = StylePlan()
+            with Registry(self.app_dir / REGISTRY_NAME) as registry:
+                plan_section_styles(plan, registry.all_sections(), style)
+                plan_version_styles(plan, registry.all_versions(), style)
+                update = functools.partial(registry.rename_paths, plan.sections, plan.versions)
+                self._move_folders(plan.ordered_moves(), "error_names_taken", update)
+            self.settings.space_style = style
+            self.save()
+
     def _subfolder_plan(self, registry: Registry, name: str) -> SubfolderPlan:
         """Return what changes when the campus subfolder becomes name.
 
@@ -728,6 +809,7 @@ class CampusApp:
             Path(self.settings.destination),
             self.settings.year_folder,
             self.settings.campus_subfolder,
+            self.settings.space_style,
         )
         return result
 

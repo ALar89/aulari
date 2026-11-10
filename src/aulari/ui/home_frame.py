@@ -58,6 +58,12 @@ def open_in_explorer(folder: Path) -> None:
 
 
 WRAP_PIXELS = 520
+# Space styles (RF21) and the text key of each one in the selector.
+SPACE_STYLE_KEYS = {
+    "": "space_style_keep",
+    "_": "space_style_underscore",
+    "-": "space_style_dash",
+}
 
 
 class HomeFrame(ttk.Frame):
@@ -188,10 +194,24 @@ class HomeFrame(ttk.Frame):
         self._choose_button.pack(side="left", padx=(PADDING, 0))
         self._open_button = ttk.Button(row, text=text("open_folder"), command=self._open_folder)
         self._open_button.pack(side="left", padx=(PADDING, 0))
+        names_row = ttk.Frame(self)
+        names_row.pack(fill="x", pady=(PADDING // 2, 0))
         self._subfolder_button = ttk.Button(
-            self, text=self._subfolder_text(), command=self._ask_subfolder
+            names_row, text=self._subfolder_text(), command=self._ask_subfolder
         )
-        self._subfolder_button.pack(anchor="w", pady=(PADDING // 2, 0))
+        self._subfolder_button.pack(side="left")
+        ttk.Label(names_row, text=text("space_style_label")).pack(side="left", padx=(PADDING, 0))
+        self._style_labels = {text(key): style for style, key in SPACE_STYLE_KEYS.items()}
+        self._space_style = tk.StringVar(value=self._style_label(self._app.settings.space_style))
+        self._style_box = ttk.Combobox(
+            names_row,
+            textvariable=self._space_style,
+            values=list(self._style_labels),
+            state="readonly",
+            width=22,
+        )
+        self._style_box.pack(side="left", padx=(PADDING // 2, 0))
+        self._style_box.bind("<<ComboboxSelected>>", self._style_selected)
 
     def _build_auto_row(self) -> None:
         """Create the automatic sync checkbox and interval selector (D7)."""
@@ -229,6 +249,7 @@ class HomeFrame(ttk.Frame):
         self._open_button.configure(state=state)
         self._year_folder_button.configure(state=state)
         self._subfolder_button.configure(state=state)
+        self._style_box.configure(state="disabled" if busy else "readonly")
         self._logout_button.configure(state=state)
         self._add_site_button.configure(state=state)
         self._remove_site_button.configure(state=state)
@@ -376,6 +397,33 @@ class HomeFrame(ttk.Frame):
         self._subfolder_button.configure(text=self._subfolder_text())
         self._status.set(text("subfolder_done", name=name) if name else text("subfolder_off"))
         self._set_busy(False)
+
+    def _style_label(self, style: str) -> str:
+        """Return the selector text of a space style."""
+        result = text(SPACE_STYLE_KEYS[style])
+        return result
+
+    def _style_selected(self, _event: tk.Event) -> None:
+        """Ask for confirmation and rename the downloaded material (RF21)."""
+        style = self._style_labels[self._space_style.get()]
+        current = self._app.settings.space_style
+        if style != current:
+            if messagebox.askyesno(text("app_title"), text("space_style_confirm"), parent=self):
+                self._set_busy(True)
+                task = functools.partial(self._app.set_space_style, style)
+                self._worker.start(task, self._style_done, self._style_failed)
+            else:
+                self._space_style.set(self._style_label(current))
+
+    def _style_done(self, _result: object) -> None:
+        """Main thread: the names were changed."""
+        self._status.set(text("space_style_done"))
+        self._set_busy(False)
+
+    def _style_failed(self, error: Exception) -> None:
+        """Main thread: nothing was renamed; show the style that is still in use."""
+        self._space_style.set(self._style_label(self._app.settings.space_style))
+        self._task_failed(error)
 
     # --- destination ---------------------------------------------------
 

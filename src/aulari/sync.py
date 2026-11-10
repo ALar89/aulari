@@ -78,6 +78,7 @@ class SyncTarget:
     destination: Path
     year_folder: str = ""  # folder of the academic year; '' = the academic year (RF20)
     subfolder: str = ""  # optional folder for the campus material inside each course (RF20)
+    space_style: str = ""  # '' keeps spaces in the names Aulari creates; '_' or '-' (RF21)
 
     def year_dir(self) -> str:
         """Return the name of the academic year folder inside the destination."""
@@ -100,6 +101,24 @@ def course_root(folder: str) -> str:
     """
     result = PurePosixPath(*PurePosixPath(folder).parts[:2]).as_posix()
     return result
+
+
+@dataclass(frozen=True)
+class ItemPlace:
+    """Where an item goes: its course and folder, with original names (RF21).
+
+    plain_dir is relative to the destination: the course folder (named by the
+    user) followed by the original section and subfolder names, with spaces.
+    """
+
+    course_id: int
+    course_folder: str
+    plain_dir: PurePosixPath
+
+    def plain_inside(self, name: str) -> str:
+        """Return the original path of a file of this folder, inside the course folder."""
+        result = (self.plain_dir.relative_to(self.course_folder) / name).as_posix()
+        return result
 
 
 @dataclass(frozen=True)
@@ -268,15 +287,32 @@ class Syncer:
         self._summary.changes.append(change)
         logger.info("%s: %s", "New version" if is_new_version else "New", change.relative_path)
 
-    def _record(self, course_id: int, item: SyncItem, target: Path, sha256: str) -> bool:
-        """Store a download in the registry; return True if it created a version."""
+    def _record(self, course_id: int, item: SyncItem, paths: tuple[Path, str], sha256: str) -> bool:
+        """Store a download in the registry; return True if it created a version.
+
+        paths is (file on disk, original path inside the course folder).
+        """
+        target, plain_path = paths
         version = {
             "relative_path": self._relative(target),
+            "plain_path": plain_path,
             "timemodified": item.timemodified,
             "filesize": item.filesize,
             "sha256": sha256,
         }
         result = self._registry.record_download(self._site_id, course_id, item.key, version)
+        return result
+
+    def _disk_dir(self, place: ItemPlace) -> Path:
+        """Return the folder of a place on disk: the original names with the space style."""
+        inside = place.plain_dir.relative_to(place.course_folder).as_posix()
+        styled = organizer.styled_path(inside, self._target.space_style)
+        result = self._destination.resolve() / place.course_folder / styled
+        return result
+
+    def _styled(self, name: str) -> str:
+        """Return a name as it goes on disk with the chosen space style (RF21)."""
+        result = organizer.apply_space_style(name, self._target.space_style)
         return result
 
     # --- courses -------------------------------------------------------
@@ -367,16 +403,18 @@ class Syncer:
         """
         proposed = organizer.section_folder(item.section.number, item.section.name)
         section_dir = self._registry.section_folder(
-            self._site_id, course_id, item.section.section_id, proposed
+            self._site_id, course_id, item.section.section_id, proposed, self._target.space_style
         )
-        relative_dir = downloader.item_relative_dir(folder, section_dir, item)
+        place = ItemPlace(
+            course_id, folder, downloader.item_relative_dir(folder, section_dir, item)
+        )
         status = self._item_status(item)
         if status == FileStatus.UNCHANGED:
             self._handle_unchanged(item)
         elif status == FileStatus.NEW:
-            self._handle_new(course_id, relative_dir, item)
+            self._handle_new(place, item)
         else:
-            self._handle_changed(course_id, relative_dir, item)
+            self._handle_changed(place, item)
 
     def _handle_unchanged(self, item: SyncItem) -> None:
         """Update last_checked and whether the local copy still exists.
@@ -413,31 +451,38 @@ class Syncer:
         else:
             downloader.download_atomic(self._client, item, self._destination, path)
 
-    def _handle_new(self, course_id: int, relative_dir: PurePosixPath, item: SyncItem) -> None:
+    def _handle_new(self, place: ItemPlace, item: SyncItem) -> None:
         """Write a new item: link, adopted existing file, or fresh download.
+
+        Names are worked out in their original form (with spaces) and written
+        to disk with the chosen space style (RF21).
 
         Raises: ValueError, OSError, DownloadError, MoodleError.
         """
-        target = downloader.plan_target(
-            self._destination, relative_dir, downloader.item_filename(item)
+        plain = downloader.plan_target(
+            self._destination, place.plain_dir, downloader.item_filename(item)
         )
+        name = plain.name
+        folder = self._disk_dir(place)
+        target = organizer.ensure_inside(self._destination, folder / self._styled(name))
         if item.kind != KIND_URL and downloader.adoptable(target, item.filesize):
-            self._record(course_id, item, target, UNKNOWN_SHA256)
+            self._record(place.course_id, item, (target, place.plain_inside(name)), UNKNOWN_SHA256)
             self._summary.adopted = self._summary.adopted + 1
         else:
             if target.exists():
-                target = downloader.free_unique_path(target)
+                name = downloader.free_unique_name(folder, name, self._target.space_style)
+                target = folder / self._styled(name)
             if item.kind == KIND_URL:
                 sha256 = downloader.write_url_shortcut(item, target)
             else:
                 _, sha256, _ = downloader.download_atomic(
                     self._client, item, self._destination, target
                 )
-            self._record(course_id, item, target, sha256)
+            self._record(place.course_id, item, (target, place.plain_inside(name)), sha256)
             self._summary.new = self._summary.new + 1
             self._note_change(target, is_new_version=False)
 
-    def _handle_changed(self, course_id: int, relative_dir: PurePosixPath, item: SyncItem) -> None:
+    def _handle_changed(self, place: ItemPlace, item: SyncItem) -> None:
         """Write a new version next to the previous one, never overwriting (RF7).
 
         If the previous folder no longer exists, the version goes to the
@@ -447,17 +492,21 @@ class Syncer:
         Raises: ValueError, OSError, DownloadError, MoodleError.
         """
         latest = self._registry.latest_version(self._site_id, item.key)
-        previous = self._stored_path(latest["relative_path"])
-        folder = previous.parent
+        folder = self._stored_path(latest["relative_path"]).parent
+        plain_dir = place.course_folder / PurePosixPath(latest["plain_path"]).parent
         if not folder.is_dir():
-            folder = self._destination.resolve() / relative_dir
+            folder = self._disk_dir(place)
             folder.mkdir(parents=True, exist_ok=True)
+            plain_dir = place.plain_dir
         base = downloader.plan_target(
             self._destination,
             PurePosixPath(self._relative(folder)),
             downloader.item_filename(item),
         )
-        target = downloader.free_versioned_path(base, item.timemodified)
+        name = downloader.free_versioned_name(
+            folder, base.name, item.timemodified, self._target.space_style
+        )
+        target = folder / self._styled(name)
         moved = True
         if item.kind == KIND_URL:
             sha256 = downloader.write_url_shortcut(item, target)
@@ -465,7 +514,10 @@ class Syncer:
             _, sha256, moved = downloader.download_atomic(
                 self._client, item, self._destination, target, skip_if_sha256=latest["sha256"]
             )
-        created = self._record(course_id, item, target, sha256)
+        plain_place = ItemPlace(place.course_id, place.course_folder, plain_dir)
+        created = self._record(
+            place.course_id, item, (target, plain_place.plain_inside(name)), sha256
+        )
         if moved and created:
             self._summary.new_versions = self._summary.new_versions + 1
             self._note_change(target, is_new_version=True)

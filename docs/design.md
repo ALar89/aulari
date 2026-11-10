@@ -57,6 +57,7 @@ Claude Code no las toma por su cuenta. Cada una lleva la opción recomendada.
 | ID | Requisito |
 |---|---|
 | RF20 | **Nombre de la carpeta de cada curso académico** (`2025-26` → `2n Curs`), por sitio, y **subcarpeta opcional para el material del campus** dentro de cada asignatura (`BD/Campus/`), global. Los dos se pueden cambiar en cualquier momento: la app mueve las carpetas y actualiza el registro en una sola transacción, y deshace los movimientos si algo falla (detalles en §5). |
+| RF21 | **Espacios en los nombres**: opción global «con espacios» (por defecto), «guion bajo» (`01_Tema_1/Tema_5.pdf`) o «guion» (`01-Tema-1/Tema-5.pdf`) para las carpetas y archivos que crea Aulari. Se puede cambiar en cualquier momento y renombra también lo ya descargado (detalles en §5). |
 
 RF16–RF18 usan funciones de lectura nuevas (`mod_forum_*`, `mod_assign_get_submission_status`, `gradereport_*`): se comprueban antes en e-aules con un script de prueba. Descartados por ahora: guardar los foros completos. Más adelante: sincronización automática e idiomas catalán e inglés.
 
@@ -92,6 +93,11 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - «Abrir» de una asignatura abre `<carpeta del curso>/<alias>`, por encima de la subcarpeta, y cambiar el alias mueve esa carpeta entera.
 - Los dos nombres pasan por `sanitize_filename()` y las rutas se comprueban dentro del destino. Todo se hace con el bloqueo de sincronización.
 
+**Espacios en los nombres (RF21, 2026-11-10):**
+- Se aplica a lo que viene de Moodle: carpetas de sección, subcarpetas de recursos, archivos y `.url`, también a las versiones (`Tema_5_(2026-11-10).pdf`) y a los duplicados (`Tema_5_(2).pdf`). ` - ` se convierte en un solo separador y los separadores repetidos se juntan. No se aplica a lo que escribe el usuario (carpeta del curso, alias, subcarpeta del campus).
+- El registro guarda el **nombre original** (con espacios) de cada sección y de cada archivo dentro de la carpeta de la asignatura (esquema 4); el nombre en disco es siempre el original con el estilo aplicado. Así el cambio es reversible y sin pérdidas: `P1_enunciat.pdf` de Moodle conserva su `_` al volver a «con espacios». La comprobación de colisiones (` (2)`, versiones) se hace con el nombre ya estilizado, que es el del disco.
+- Al cambiar el estilo se renombra todo lo registrado de todos los cursos académicos: primero las carpetas de fuera hacia dentro y después los archivos, con el bloqueo de sincronización. Nunca se sobrescribe: si un nombre nuevo ya existe, se deshace todo lo movido y no cambia nada. Los archivos que el usuario borró solo cambian en el registro (al recuperarlos, salen con el nombre nuevo). La interfaz pide confirmación antes.
+
 **Archivos `.url`:** solo esquemas `http`/`https`; rechazar URLs con `\r` o `\n`; contenido exacto `[InternetShortcut]` + `URL=`. Si la URL cambia en Moodle, se crea un `.url` nuevo como versión.
 
 **Mark-of-the-Web:** las descargas llevan `Zone.Identifier` para que Office las abra en vista protegida.
@@ -102,7 +108,7 @@ Verificado en el código fuente de Moodle 4.5 (ver §10):
 - **Clave de un archivo:** `(site_url, user_id, cmid, filearea, filepath, filename)`. Ni `fileurl` (cambia con `revision`) ni el ID del archivo (cambia al volver a subirlo) son estables, y la API no devuelve `contenthash`.
 - **Versión nueva:** cambia `timemodified` **o** `filesize`. Si tras descargar a temporal el SHA-256 coincide con el anterior, no se crea versión: solo se actualiza la fecha.
 - **Campos:** ruta **relativa al destino**, `timemodified`, `filesize`, `sha256`, estado (`present`, `missing`, `removed_in_moodle`).
-- **Secciones:** tabla `section_id → nombre de carpeta`, fijado al crearla. Si el profesor renombra o reordena secciones, o mueve un archivo de sección, no se mueve nada en el disco.
+- **Secciones:** tabla `section_id → nombre de carpeta`, fijado al crearla (con RF21 se guarda también el nombre original y solo cambia el estilo de los espacios). Si el profesor renombra o reordena secciones, o mueve un archivo de sección, no se mueve nada en el disco.
 - **Versión nueva de un archivo que el usuario movió o borró:** siempre se descarga; va junto a la ruta registrada si existe y, si no, a la carpeta de su sección. Se destaca en el resumen.
 - **Eliminado u oculto en Moodle:** nunca se borra en local; estado `removed_in_moodle`.
 - **Atomicidad:** descargar a `<destino>\.aulari-tmp\` (mismo volumen), comprobar tamaño, mover con creación exclusiva y después confirmar en el registro. Al arrancar, un archivo en la ruta esperada sin registro y con el mismo tamaño se adopta.

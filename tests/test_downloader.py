@@ -97,25 +97,33 @@ class PathTests(FolderTestCase):
 
 
 class FreeNameTests(FolderTestCase):
-    """Tests for free_unique_path() and free_versioned_path()."""
+    """Tests for free_unique_name() and free_versioned_name()."""
 
-    def test_unique_path(self) -> None:
+    def test_unique_name(self) -> None:
         """A taken name gets ' (2)'."""
         (self.destination / "a.pdf").write_bytes(b"x")
-        result = downloader.free_unique_path(self.destination / "a.pdf")
-        self.assertEqual(result.name, "a (2).pdf")
+        result = downloader.free_unique_name(self.destination, "a.pdf")
+        self.assertEqual(result, "a (2).pdf")
 
-    def test_versioned_path_progression(self) -> None:
+    def test_versioned_name_progression(self) -> None:
         """Date first, then date and time, then a counter (RF7, Madrid time)."""
-        base = self.destination / "a.pdf"
-        first = downloader.free_versioned_path(base, NOV_6)
-        self.assertEqual(first.name, "a (2026-11-06).pdf")
-        first.write_bytes(b"x")
-        second = downloader.free_versioned_path(base, NOV_6)
-        self.assertEqual(second.name, "a (2026-11-06 1805).pdf")
-        second.write_bytes(b"x")
-        third = downloader.free_versioned_path(base, NOV_6)
-        self.assertEqual(third.name, "a (2026-11-06 1805) (2).pdf")
+        first = downloader.free_versioned_name(self.destination, "a.pdf", NOV_6)
+        self.assertEqual(first, "a (2026-11-06).pdf")
+        (self.destination / first).write_bytes(b"x")
+        second = downloader.free_versioned_name(self.destination, "a.pdf", NOV_6)
+        self.assertEqual(second, "a (2026-11-06 1805).pdf")
+        (self.destination / second).write_bytes(b"x")
+        third = downloader.free_versioned_name(self.destination, "a.pdf", NOV_6)
+        self.assertEqual(third, "a (2026-11-06 1805) (2).pdf")
+
+    def test_styled_names_are_checked_on_disk(self) -> None:
+        """With a space style the disk holds 'Tema_1...', but the original form is returned."""
+        (self.destination / "Tema_1.pdf").write_bytes(b"x")
+        result = downloader.free_unique_name(self.destination, "Tema 1.pdf", "_")
+        self.assertEqual(result, "Tema 1 (2).pdf")
+        (self.destination / "Tema_1_(2026-11-06).pdf").write_bytes(b"x")
+        version = downloader.free_versioned_name(self.destination, "Tema 1.pdf", NOV_6, "_")
+        self.assertEqual(version, "Tema 1 (2026-11-06 1805).pdf")
 
     def test_adoptable(self) -> None:
         """A file is adoptable only if it exists with the same size (RF11)."""

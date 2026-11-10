@@ -202,5 +202,25 @@ class LocalTimeTests(unittest.TestCase):
         self.assertEqual(name, "a (2026-11-07).pdf")
 
 
+class SpaceStyleTests(unittest.TestCase):
+    """Tests for apply_space_style() and styled_path() (RF21)."""
+
+    def test_styles(self) -> None:
+        """'' keeps spaces; '_' and '-' replace them, joining ' - ' and repeats."""
+        name = "01 - Tema 1:  Intro_C.pdf"
+        self.assertEqual(organizer.apply_space_style(name, ""), name)
+        self.assertEqual(organizer.apply_space_style(name, "_"), "01_Tema_1:_Intro_C.pdf")
+        self.assertEqual(organizer.apply_space_style(name, "-"), "01-Tema-1:-Intro_C.pdf")
+        self.assertEqual(organizer.apply_space_style("a – b", "-"), "a-b")
+
+    def test_styled_path_and_unique_name(self) -> None:
+        """Every part of a path is styled; unique_name() checks the styled form."""
+        self.assertEqual(
+            organizer.styled_path("00 - General/Tema 1.pdf", "_"), "00_General/Tema_1.pdf"
+        )
+        result = organizer.unique_name("Tema 1.pdf", {"tema_1.pdf"}, style="_")
+        self.assertEqual(result, "Tema 1 (2).pdf")
+
+
 if __name__ == "__main__":
     unittest.main()

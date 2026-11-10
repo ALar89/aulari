@@ -101,6 +101,10 @@ class FakeApp:
         """Return the academic year folder name (RF20)."""
         return self.settings.year_folder or "2026-27"
 
+    def set_space_style(self, style: str) -> None:
+        """Remember the space style (RF21)."""
+        self.settings.space_style = style
+
     def set_campus_subfolder(self, name: str) -> str:
         """Remember the campus subfolder (RF20)."""
         self.settings.campus_subfolder = name.strip()
@@ -189,6 +193,11 @@ class HomeFrameSmokeTests(unittest.TestCase):
         campus = text("subfolder_button", name="Campus")
         self.assertEqual(self.frame._subfolder_button.cget("text"), campus)
         self.assertEqual(self.frame._status.get(), text("subfolder_done", name="Campus"))
+        self.assertEqual(self.frame._space_style.get(), text("space_style_keep"))
+        self.frame._style_done(self.app.set_space_style("_"))
+        self.assertEqual(self.frame._status.get(), text("space_style_done"))
+        self.frame._style_failed(ValueError("x"))
+        self.assertEqual(self.frame._space_style.get(), text("space_style_underscore"))
 
 
 class NewsWindowTests(unittest.TestCase):
